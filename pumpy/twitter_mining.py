@@ -7,21 +7,18 @@ from typing import List
 import tweepy
 from loguru import logger
 from path import Path
-from tweepy import OAuthHandler
+from tweepy import AppAuthHandler
 
-from utils.utils import new_file_name
+from .utils import new_file_name
 from .creds import access_secret, access_token, consumer_key, consumer_secret
 
 
-LOGGER_ROOT = "/home/julien/Doctorat/Code/Proto/logs/"
+LOGGER_ROOT = "./logs/"
 
 CONSUMMER_KEY = consumer_key
 CONSUMMER_SECRET = consumer_secret
-ACCESS_TOKEN = access_token
-ACCESS_SECRET = access_secret
 
-auth = OAuthHandler(CONSUMMER_KEY, CONSUMMER_SECRET)
-auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
+auth = AppAuthHandler(CONSUMMER_KEY, CONSUMMER_SECRET)
 
 api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 

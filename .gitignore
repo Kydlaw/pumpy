@@ -108,5 +108,4 @@ venv.bak/
 
 # stuff
 data/
-creds.py
 *.ipynb
