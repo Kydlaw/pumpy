@@ -7,23 +7,15 @@ from typing import List
 import tweepy
 from loguru import logger
 from path import Path
-from tweepy import AppAuthHandler
+from tweepy import API
 
+from .creds import AuthApi
 from .utils import new_file_name
-from .creds import access_secret, access_token, consumer_key, consumer_secret
-
 
 LOGGER_ROOT = "./logs/"
 
-CONSUMMER_KEY = consumer_key
-CONSUMMER_SECRET = consumer_secret
 
-auth = AppAuthHandler(CONSUMMER_KEY, CONSUMMER_SECRET)
-
-api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-
-
-def file_ids_to_tweets_in_json(path_str_tweet_ids_csv: str) -> None:
+def file_ids_to_tweets_in_json(api: API, path_str_tweet_ids_csv: str) -> None:
     path_tweet_ids_csv: Path = Path(path_str_tweet_ids_csv)
     logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
     ids: List[str] = list()
@@ -33,10 +25,12 @@ def file_ids_to_tweets_in_json(path_str_tweet_ids_csv: str) -> None:
             ids.append(line[1])
 
     path_tweet_json = new_file_name(path_tweet_ids_csv, extension=".json")
-    write_tweets_through_ids(ids, path_tweet_json)
+    write_tweets_through_ids(api, ids, path_tweet_json)
 
 
-def write_tweets_through_ids(list_ids: List[str], path_tweet_json: Path) -> None:
+def write_tweets_through_ids(
+    api: API, list_ids: List[str], path_tweet_json: Path
+) -> None:
     tweets: List[str] = list()
     with open(str(path_tweet_json), "a+", encoding="utf-8") as resulting_json:
         for tweet_id in list_ids:
