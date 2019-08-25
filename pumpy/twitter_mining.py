@@ -15,34 +15,69 @@ from .utils import new_file_name
 LOGGER_ROOT = "./logs/"
 
 
-def file_ids_to_tweets_in_json(api: API, path_str_tweet_ids_csv: str) -> None:
-    path_tweet_ids_csv: Path = Path(path_str_tweet_ids_csv)
-    logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
-    ids: List[str] = list()
-    with open(path_tweet_ids_csv, "r", encoding="utf-8") as ids_csv:
-        csv_reader = csv.reader(ids_csv)
-        for line in csv_reader:
-            ids.append(line[1])
+class Miner(object):
+    def __init__(self, mode: str):
+        self.mode = mode
+        self.status = False
+        self.output_file = None
+        self.input_file = None
 
-    path_tweet_json = new_file_name(path_tweet_ids_csv, extension=".json")
-    write_tweets_through_ids(api, ids, path_tweet_json)
+    def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
+        self.input_file = Path(path_input_file)
+        self.index_ids = index_ids
+        return self
 
+    def to(self, output) -> None:
+        if output == "database":
+            raise NotImplementedError
+        else:
+            if self.input_file is None:
+                raise ValueError("Please define input file before calling to()")
+            output_path = Path(output)
+            self.output_file = _new_file_name(output_path, extension=".json")
 
-def write_tweets_through_ids(
-    api: API, list_ids: List[str], path_tweet_json: Path
-) -> None:
-    tweets: List[str] = list()
-    with open(str(path_tweet_json), "a+", encoding="utf-8") as resulting_json:
-        for tweet_id in list_ids:
-            try:
-                tweet = api.get_status(tweet_id)._json
-            except tweepy.error.TweepError as err:
-                logger.warning(f"{tweet_id} | {err}")
-            else:
-                logger.info(f"OK")
-                tweets.append(tweet)
+    def mine(self, api: API):
+        # Todo: Perform check of API's mode
+        # Todo: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
+        if self.mode == "getter":
+            _file_ids_to_tweets_in_json(api, self.input_file)
+        elif self.mode == "stream":
+            raise NotImplementedError
+        else:
+            raise ValueError(
+                "The 'mode' argument is not valid. It should be 'getter' or 'stream'"
+            )
 
-        json.dump(tweets, resulting_json, ensure_ascii=False, indent=4)
+    def db_config(self):
+        raise NotImplementedError
+
+    def _write_tweets_through_ids(
+        self, api: API, list_ids: List[str], path_tweet_json: Path
+    ) -> None:
+        tweets: List[str] = list()
+        with open(str(path_tweet_json), "a+", encoding="utf-8") as resulting_json:
+            for tweet_id in list_ids:
+                try:
+                    tweet = api.get_status(tweet_id)._json
+                except tweepy.error.TweepError as err:
+                    pass
+                    # Todo logger.warning(f"{tweet_id} | {err}")
+                else:
+                    # Todo logger.info(f"OK")
+                    tweets.append(tweet)
+
+            json.dump(tweets, resulting_json, ensure_ascii=False, indent=4)
+
+    def _file_ids_to_tweets_in_json(api: API, path_tweet_ids_csv: Path) -> None:
+        # Todo: yield directement les ids au lieu de créer une liste
+        ids: List[str] = list()
+        with open(path_tweet_ids_csv, "r", encoding="utf-8") as ids_csv:
+            csv_reader = csv.reader(ids_csv)
+            for line in csv_reader:
+                ids.append(line[index_ids])
+
+        _write_tweets_through_ids(api, ids, output_file)
+
 
 
 def extract_ids(path):
