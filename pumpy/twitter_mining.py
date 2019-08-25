@@ -10,7 +10,6 @@ from path import Path
 from tweepy import API
 
 from .creds import AuthApi
-from .utils import new_file_name
 
 LOGGER_ROOT = "./logs/"
 
@@ -78,6 +77,22 @@ class Miner(object):
 
         _write_tweets_through_ids(api, ids, output_file)
 
+    def _new_file_name(input_path: Path, extension: str) -> Path:
+        """Provide the path of a new file using the parent dir name.
+        
+        Arguments:
+            input_path {Path} -- The path of a file contained in the targeted dir
+            extension {str} -- The extension of the new file
+        
+        Returns:
+            output_path {Path} -- The new path generated
+        """
+        if "." not in extension:
+            raise SyntaxError("Missing '.' character in the extension name")
+        output_path: Path = Path(
+            Path.joinpath(*input_path.splitall()[:-1])
+        ) / input_path.dirname().basename() + extension
+        return output_path
 
 
 def extract_ids(path):
