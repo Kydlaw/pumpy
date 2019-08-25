@@ -14,7 +14,7 @@ class AuthApi(object):
     "stream" -> stream tweets.
     
     Arguments:
-        mode: {str} -- 'getter' or 'stream
+        mode: {str} -- 'getter' or 'stream'
         token {str} -- Access token
         token_secret {str} -- Access token secret
         key {str} -- Consumer API key
@@ -75,3 +75,13 @@ class AuthApi(object):
             raise ValueError("The 'mode' argument should be 'stream' or 'getter'")
 
         return API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+
+
+if __name__ == "__main__":
+    api1 = AuthApi(mode="getter", token="", token_secret="", key="", key_secret="")
+    api2 = AuthApi(mode="stream", token="", token_secret="")
+    api3 = AuthApi(mode="getter", token="", token_secret="")
+    print(api1)
+    print(api2)
+    print(api3)
+

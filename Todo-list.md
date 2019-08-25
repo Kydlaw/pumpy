@@ -12,10 +12,6 @@
    - Un fichier de destination
    
    - Un état?
-     
-   
-   
-   
 
 1. Mode **Getter**
 
@@ -34,7 +30,4 @@ api = AuthApi("getter", cred1, cred2, cred3, cred4)
 # Puis on passe l'api qui sera utilisée pour récupérer les données.
 # Cela lance également la récupération des données jusqu'à ce qu'on atteigne la limite d'appels
 >>> miner1.mine(api)
-
 ```
-
-
