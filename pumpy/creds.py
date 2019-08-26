@@ -1,11 +1,12 @@
 #  coding: utf-8
 
 from loguru import logger
+from tweepy import API, Stream
 from tweepy.auth import AppAuthHandler, OAuthHandler
-from tweepy import API
+from tweepy.streaming import StreamListener
 
 
-class AuthApi(object):
+class AuthApi(API):
     """
     Return a Tweepy's API object. Used to perform calls to Twitter's API.
     Return a different API object according to the chosen mode and the tokens provided.
@@ -36,6 +37,7 @@ class AuthApi(object):
         key: str = "",
         key_secret: str = "",
     ):
+        super().__init__()
         self.mode = mode
         self.token = token
         self.token_secret = token_secret
@@ -55,33 +57,41 @@ class AuthApi(object):
 
             elif self.token and self.token_secret and self.key and self.key_secret:
                 logger.debug("Getter - OAuth")
-                auth = OAuthHandler(self.token, self.token_secret).set_token(
-                    self.key, self.key_secret
-                )
+                auth = OAuthHandler(self.token, self.token_secret)
+                auth.set_access_token(self.key, self.key_secret)
 
             else:
-                raise ValueError("Invalid credentials")
+                raise ValueError("Invalid arguments")
+
+            return (
+                API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True),
+                self.mode,
+            )
 
         elif self.mode == "stream":
             if self.token and self.token_secret and self.key and self.key_secret:
                 logger.debug("Stream - OAuth")
-                auth = OAuthHandler(self.token, self.token_secret).set_token(
-                    self.key, self.key_secret
-                )
+                auth = OAuthHandler(self.token, self.token_secret)
+                auth.set_token(self.key, self.key_secret)
 
             else:
                 raise ValueError("Invalid credentials")
+
+            return (auth, self.mode)
         else:
             raise ValueError("The 'mode' argument should be 'stream' or 'getter'")
 
-        return API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-
 
 if __name__ == "__main__":
-    api1 = AuthApi(mode="getter", token="", token_secret="", key="", key_secret="")
+    api1 = AuthApi(
+        mode="getter",
+        token="pUhieXUga8cOYhAd9aVrTwljM",
+        token_secret="w1XVYYdctDpEuvg3e7xZNYU1CweUNZGRsnhIBybRDCa4mpv3N8",
+        key="981955283676254208-VEhPUugVV6pCSUIp4C8Sfl641DNPAyo",
+        key_secret="ItEustxX9YMaDACmNHFWXFjE8LbkXPVFxFBUNHocrqyCy",
+    ).generate_api
     api2 = AuthApi(mode="stream", token="", token_secret="")
     api3 = AuthApi(mode="getter", token="", token_secret="")
-    print(api1)
+    print(type(api1[0]))
     print(api2)
     print(api3)
-
