@@ -17,8 +17,7 @@ if __name__ == "__main__":
     auth = OAuthHandler(
         "pUhieXUga8cOYhAd9aVrTwljM",
         "w1XVYYdctDpEuvg3e7xZNYU1CweUNZGRsnhIBybRDCa4mpv3N8",
-    )
-    auth.set_access_token(
+    ).set_access_token(
         "981955283676254208-VEhPUugVV6pCSUIp4C8Sfl641DNPAyo",
         "ItEustxX9YMaDACmNHFWXFjE8LbkXPVFxFBUNHocrqyCy",
     )

@@ -27,17 +27,24 @@ class Miner(object):
         return self
 
     def to(self, output) -> None:
-        if output == "database":
-            raise NotImplementedError
-        else:
-            if self.input_file is None:
-                raise ValueError("Please define input file before calling to()")
-            output_path = Path(output)
-            self.output_file = _new_file_name(output_path, extension=".json")
+        if self.mode == "getter":
+            if output == "database":
+                raise NotImplementedError
+            else:
+                if self.input_file is None:
+                    raise ValueError("Please define input file before calling to()")
+                output_path = Path(output)
+                self.output_file = _new_file_name(output_path, extension=".json")
 
-    def mine(self, api: API):
-        # Todo: Perform check of API's mode
+        if self.mode == "stream":
+            if output == "database":
+                raise NotImplementedError
+
+    def mine(self, api: tuple):
         # Todo: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
+        if api[1] != self.mode:
+            raise ValueError("The API mode mismatch the miner mode")
+
         if self.mode == "getter":
             _file_ids_to_tweets_in_json(api, self.input_file)
         elif self.mode == "stream":
