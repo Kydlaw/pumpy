@@ -35,3 +35,19 @@ def test_from_file_output(mocker, minerg):
     result = minerg.from_file("this/is/a/path.txt", 1)
     assert result.input_file == "this/is/a/path.txt"
     assert result.index_ids == 1
+
+
+def test_to_no_input_file_specified(minerg):
+    with pytest.raises(ValueError):
+        minerg.to("this/is/a/path.txt")
+
+
+def test_to_output(minerg, tmp_path):
+    from path import Path
+
+    p = tmp_path / "data/tweets/"
+    minerg.input_file = "data/CrisisLexT26/Colorado_wildfire/Colorado_ids.csv"
+    minerg.to(p)
+    assert minerg.output_file_path == Path(
+        tmp_path / "data/tweets/Colorado_wildfire.json"
+    )
