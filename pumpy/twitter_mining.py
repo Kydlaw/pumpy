@@ -33,18 +33,25 @@ class Miner(object):
             raise ValueError("from_file() method is only available in 'getter' mode")
 
     def to(self, output) -> None:
-        if self.mode == "getter":
-            if output == "database":
-                raise NotImplementedError
-            else:
-                if self.input_file is None:
-                    raise ValueError("Please define input file before calling to()")
-                output_path = Path(output)
-                self.output_file = _new_file_name(output_path, extension=".json")
-
-        if self.mode == "stream":
-            if output == "database":
-                raise NotImplementedError
+        """Define where the data will be sent. It can be stdout, in a file or in a database
+        
+        Arguments:
+            output {str} -- Path toward the directory where the data will be stored.
+        
+        Raises:
+            NotImplementedError: pass
+            ValueError: Raised in getter mode if no file was given through from_file()
+        
+        Returns:
+            Path -- Path object toward the file where the data will be stored.
+        """
+        if output == "database":
+            raise NotImplementedError
+        else:
+            if self.mode == "getter" and self.input_file is None:
+                raise ValueError("Please define input file before calling to()")
+            output_path = Path(output)
+            self.output_file_path = self._new_file_name(output_path, extension=".json")
 
     def mine(self, api: tuple):
         # Todo: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
