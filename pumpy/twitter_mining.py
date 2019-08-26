@@ -17,14 +17,20 @@ LOGGER_ROOT = "./logs/"
 class Miner(object):
     def __init__(self, mode: str):
         self.mode = mode
-        self.status = False
-        self.output_file = None
         self.input_file = None
+        self.output = None
+        self.index_ids = 0
 
     def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
-        self.input_file = Path(path_input_file)
-        self.index_ids = index_ids
-        return self
+        path = Path(path_input_file)
+        if not path.exists():
+            raise FileNotFoundError("Wrong file or file path")
+        if self.mode == "getter":
+            self.input_file = path
+            self.index_ids = index_ids
+            return self
+        else:
+            raise ValueError("from_file() method is only available in 'getter' mode")
 
     def to(self, output) -> None:
         if self.mode == "getter":
