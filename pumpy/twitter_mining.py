@@ -18,7 +18,7 @@ class Miner(object):
     def __init__(self, mode: str):
         self.mode = mode
         self.input_file = None
-        self.output = None
+        self.output_file_path = None
         self.index_ids = 0
 
     def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
@@ -54,7 +54,10 @@ class Miner(object):
         if self.mode == "getter":
             _file_ids_to_tweets_in_json(api, self.input_file)
         elif self.mode == "stream":
+            # TODO: Create a Stream with the correct config
+            # TODO: Call filter with the right parameters
             raise NotImplementedError
+
         else:
             raise ValueError(
                 "The 'mode' argument is not valid. It should be 'getter' or 'stream'"
