@@ -59,7 +59,8 @@ class Miner(object):
             raise ValueError("The API mode mismatch the miner mode")
 
         if self.mode == "getter":
-            _file_ids_to_tweets_in_json(api, self.input_file)
+            self._file_ids_to_tweets_in_json(self, api, self.input_file)
+
         elif self.mode == "stream":
             # TODO: Create a Stream with the correct config
             # TODO: Call filter with the right parameters
@@ -73,8 +74,9 @@ class Miner(object):
     def db_config(self):
         raise NotImplementedError
 
+    @staticmethod
     def _write_tweets_through_ids(
-        self, api: API, list_ids: List[str], path_tweet_json: Path
+        api: API, list_ids: List[str], path_tweet_json: Path
     ) -> None:
         tweets: List[str] = list()
         with open(str(path_tweet_json), "a+", encoding="utf-8") as resulting_json:
@@ -90,17 +92,19 @@ class Miner(object):
 
             json.dump(tweets, resulting_json, ensure_ascii=False, indent=4)
 
-    def _file_ids_to_tweets_in_json(api: API, path_tweet_ids_csv: Path) -> None:
+    @staticmethod
+    def _file_ids_to_tweets_in_json(self, api: API, path_tweet_ids_csv: Path) -> None:
         # Todo: yield directement les ids au lieu de créer une liste
         ids: List[str] = list()
         with open(path_tweet_ids_csv, "r", encoding="utf-8") as ids_csv:
             csv_reader = csv.reader(ids_csv)
             for line in csv_reader:
-                ids.append(line[index_ids])
+                ids.append(line[self.index_ids])
 
-        _write_tweets_through_ids(api, ids, output_file)
+        self._write_tweets_through_ids(api, ids, self.output_file_path)
 
-    def _new_file_name(input_path: Path, extension: str) -> Path:
+    @staticmethod
+    def _new_file_name(input_path, extension) -> Path:
         """Provide the path of a new file using the parent dir name.
         
         Arguments:
