@@ -72,7 +72,7 @@ class AuthApi(API):
             if self.token and self.token_secret and self.key and self.key_secret:
                 logger.debug("Stream - OAuth")
                 auth = OAuthHandler(self.token, self.token_secret)
-                auth.set_token(self.key, self.key_secret)
+                auth.set_access_token(self.key, self.key_secret)
 
             else:
                 raise ValueError("Invalid credentials")
