@@ -50,3 +50,16 @@ def test_to_output(minerg, tmp_path):
     assert minerg.output_file_path == Path(
         tmp_path / "data/tweets/Colorado_wildfire.json"
     )
+
+
+def test_miner_from_file_to(mocker, minerg, tmp_path):
+    mocker.patch("path.Path.exists")
+    p = tmp_path / "data/tweets/"
+    from_path = "data/CrisisLexT26/Colorado_wildfire/Colorado_ids.csv"
+    minerg.from_file(from_path, 1).to(p)
+    assert minerg.mode == "getter"
+    assert minerg.input_file_path == from_path
+    assert minerg.output_file_path == Path(
+        tmp_path / "data/tweets/Colorado_wildfire.json"
+    )
+
