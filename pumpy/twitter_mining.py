@@ -109,16 +109,16 @@ class Miner(object):
                     tweet = api.get_status(tweet_id)._json
                 except tweepy.error.TweepError as err:
                     pass
-                    # Todo logger.warning(f"{tweet_id} | {err}")
+                    # TODO logger.warning(f"{tweet_id} | {err}")
                 else:
-                    # Todo logger.info(f"OK")
+                    # TODO logger.info(f"OK")
                     tweets.append(tweet)
 
             json.dump(tweets, resulting_json, ensure_ascii=False, indent=4)
 
     @staticmethod
     def _file_ids_to_tweets_in_json(self, api: API, path_tweet_ids_csv: Path) -> None:
-        # Todo: yield directement les ids au lieu de créer une liste
+        # TODO: yield directement les ids au lieu de créer une liste
         ids: List[str] = list()
         with open(path_tweet_ids_csv, "r", encoding="utf-8") as ids_csv:
             csv_reader = csv.reader(ids_csv)
