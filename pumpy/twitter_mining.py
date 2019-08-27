@@ -49,13 +49,20 @@ class Miner(object):
         """
         if output == "database":
             raise NotImplementedError
-        else:
-            if self.mode == "getter" and self.input_file_path is None:
-                raise ValueError("Please define input file before calling to()")
+        if self.input_file_path is None and self.mode == "getter":
+            raise ValueError("Please define input file before calling to()")
+
+        if self.mode == "getter":
             output_path = Path(output)
             self.output_file_path = self._new_file_name(
                 self, output_path, extension=".json"
             )
+        else:
+            i = 0
+            while Path("stream%s.json" % i).exists():
+                i += 1
+            new_file_path = Path(output) + Path("stream%s.json" % i)
+            self.output_file_path = new_file_path.touch()
 
     def mine(self, api: tuple):
         # Todo: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
@@ -68,7 +75,9 @@ class Miner(object):
         elif self.mode == "stream":
             # TODO: Create a Stream with the correct config
             # TODO: Call filter with the right parameters
-            raise NotImplementedError
+            stream = Stream(api[0], self._listener())
+
+            stream.filter(track=self.keywords, locations=self.locations, is_async=True)
 
         else:
             raise ValueError(
@@ -119,6 +128,17 @@ class Miner(object):
         self._write_tweets_through_ids(api, ids, self.output_file_path)
 
     @staticmethod
+    def _listener():
+        class Listener(StreamListener):
+            def on_status(self, status):
+                print(status.text)
+
+            def on_error(self, status):
+                print(status)
+
+        return Listener()
+
+    @staticmethod
     def _new_file_name(self, dir_name: str, extension: str) -> Path:
         """Provide the path of a new file using the parent dir name.
         
@@ -146,13 +166,3 @@ def extract_ids(path):
                 tweet_ids.append(tweet_id.group(0))
     return tweet_ids
 
-
-def _listener(self):
-    class Listener(StreamListener):
-        def on_status(self, status):
-            print(status.text)
-
-        def on_error(self, status):
-            print(status)
-
-    return Listener()
