@@ -13,7 +13,7 @@
    
    - Un état?
 
-1. Mode **Getter**
+2- Mode **Getter**
 
 Exemple utilisation: 
 
@@ -33,7 +33,10 @@ api = AuthApi("getter", cred1, cred2, cred3, cred4)
 >>> miner1.mine(api)
 ```
 
-2. Mode **Stream**
+3. Mode **Stream**
+
+
+
 ```py
 api = AuthApi("stream", cred1, cred2, cred3, cred4)
 >>> miner2 = Miner("stream")
@@ -44,7 +47,6 @@ api = AuthApi("stream", cred1, cred2, cred3, cred4)
 >>> miner2.to("database").db_config(arg1, arg2, arg3...)
 >>> miner2.mine(api)
 ```
-
 
 monkeypatch
     PRO: comes with pytest, no extra dependencies in python2 / python 3

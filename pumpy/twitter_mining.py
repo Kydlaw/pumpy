@@ -7,7 +7,7 @@ from typing import List
 import tweepy
 from loguru import logger
 from path import Path
-from tweepy import API
+from tweepy import API, Stream, StreamListener
 
 from .creds import AuthApi
 
@@ -20,6 +20,8 @@ class Miner(object):
         self.input_file_path = None
         self.output_file_path = None
         self.index_ids = 0
+        self.keywords: List[str] = list()
+        self.locations: List[List[int]] = list()
 
     def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
         path = Path(path_input_file)
@@ -72,6 +74,17 @@ class Miner(object):
             raise ValueError(
                 "The 'mode' argument is not valid. It should be 'getter' or 'stream'"
             )
+
+    def search(self, *args) -> None:
+        if self.mode != "stream":
+            raise ValueError("Invalid mode. Mode should be 'stream'.")
+        for elt in args:
+            if type(elt) == str:
+                self.keywords.append(elt)
+            elif type(elt) == list and len(elt) == 4:
+                self.locations.append(elt)
+            else:
+                raise ValueError("Invalid argument type")
 
     def db_config(self):
         raise NotImplementedError

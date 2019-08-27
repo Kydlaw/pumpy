@@ -63,3 +63,18 @@ def test_miner_from_file_to(mocker, minerg, tmp_path):
         tmp_path / "data/tweets/Colorado_wildfire.json"
     )
 
+
+def test_search(miners):
+    miners.search("twitter", "python", "banane")
+    assert miners.keywords == ["twitter", "python", "banane"]
+    miners.search([0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8])
+    assert miners.locations == [[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8]]
+    miners.search("bonjour", [0.11, 0.21, 0.31, 0.41])
+    assert miners.keywords == ["twitter", "python", "banane", "bonjour"]
+    assert miners.locations == [
+        [0.1, 0.2, 0.3, 0.4],
+        [0.5, 0.6, 0.7, 0.8],
+        [0.11, 0.21, 0.31, 0.41],
+    ]
+    with pytest.raises(ValueError):
+        miners.search([1, 2, 3])
