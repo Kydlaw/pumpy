@@ -65,7 +65,7 @@ class Miner(object):
             self.output_file_path = new_file_path.touch()
 
     def mine(self, api: tuple):
-        # Todo: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
+        # TODO: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
         if api[1] != self.mode:
             raise ValueError("The API mode mismatch the miner mode")
 
@@ -73,10 +73,8 @@ class Miner(object):
             self._file_ids_to_tweets_in_json(self, api, self.input_file_path)
 
         elif self.mode == "stream":
-            # TODO: Create a Stream with the correct config
-            # TODO: Call filter with the right parameters
             stream = Stream(api[0], self._listener())
-
+            # TODO: Write the result into a file
             stream.filter(track=self.keywords, locations=self.locations, is_async=True)
 
         else:
@@ -111,7 +109,7 @@ class Miner(object):
                     pass
                     # TODO logger.warning(f"{tweet_id} | {err}")
                 else:
-                    # TODO logger.info(f"OK")
+                    # TODO logger.info("OK")
                     tweets.append(tweet)
 
             json.dump(tweets, resulting_json, ensure_ascii=False, indent=4)
@@ -131,6 +129,8 @@ class Miner(object):
     def _listener():
         class Listener(StreamListener):
             def on_status(self, status):
+                # TODO: Define the right information that I want to store
+                # TODO: Store the information into a file
                 print(status.text)
 
             def on_error(self, status):

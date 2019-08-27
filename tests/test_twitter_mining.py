@@ -78,3 +78,11 @@ def test_search(miners):
     ]
     with pytest.raises(ValueError):
         miners.search([1, 2, 3])
+
+
+def test_mine_output():
+    pass
+
+
+def test_new_file_name():
+    pass
