@@ -35,8 +35,6 @@ api = AuthApi("getter", cred1, cred2, cred3, cred4)
 
 3. Mode **Stream**
 
-
-
 ```py
 api = AuthApi("stream", cred1, cred2, cred3, cred4)
 >>> miner2 = Miner("stream")
@@ -45,6 +43,7 @@ api = AuthApi("stream", cred1, cred2, cred3, cred4)
 >>> miner2.to("../data/tweets/")
 # ou 
 >>> miner2.to("database").db_config(arg1, arg2, arg3...)
+>>> miner2.search("banane")
 >>> miner2.mine(api)
 ```
 
