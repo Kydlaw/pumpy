@@ -51,7 +51,9 @@ class Miner(object):
             if self.mode == "getter" and self.input_file is None:
                 raise ValueError("Please define input file before calling to()")
             output_path = Path(output)
-            self.output_file_path = self._new_file_name(output_path, extension=".json")
+            self.output_file_path = self._new_file_name(
+                self, output_path, extension=".json"
+            )
 
     def mine(self, api: tuple):
         # Todo: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
@@ -104,21 +106,21 @@ class Miner(object):
         self._write_tweets_through_ids(api, ids, self.output_file_path)
 
     @staticmethod
-    def _new_file_name(input_path, extension) -> Path:
+    def _new_file_name(self, dir_name: str, extension: str) -> Path:
         """Provide the path of a new file using the parent dir name.
         
         Arguments:
-            input_path {Path} -- The path of a file contained in the targeted dir
-            extension {str} -- The extension of the new file
+            dir_name {Path} -- The path of the targeted dir.
+            extension {str} -- The extension of the new file.
         
         Returns:
-            output_path {Path} -- The new path generated
+            output_path {Path} -- The new path generated.
         """
         if "." not in extension:
             raise SyntaxError("Missing '.' character in the extension name")
-        output_path: Path = Path(
-            Path.joinpath(*input_path.splitall()[:-1])
-        ) / input_path.dirname().basename() + extension
+        dir_path = Path(dir_name)
+        new_name = Path.joinpath(*Path(self.input_file).splitall()[-2:-1])
+        output_path = dir_name / new_name + extension
         return output_path
 
 
@@ -130,3 +132,14 @@ def extract_ids(path):
             if tweet_id:
                 tweet_ids.append(tweet_id.group(0))
     return tweet_ids
+
+
+def _listener(self):
+    class Listener(StreamListener):
+        def on_status(self, status):
+            print(status.text)
+
+        def on_error(self, status):
+            print(status)
+
+    return Listener()
