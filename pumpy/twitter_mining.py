@@ -17,7 +17,7 @@ LOGGER_ROOT = "./logs/"
 class Miner(object):
     def __init__(self, mode: str):
         self.mode = mode
-        self.input_file = None
+        self.input_file_path = None
         self.output_file_path = None
         self.index_ids = 0
 
@@ -26,7 +26,7 @@ class Miner(object):
         if not path.exists():
             raise FileNotFoundError("Wrong file or file path")
         if self.mode == "getter":
-            self.input_file = path
+            self.input_file_path = Path(path)
             self.index_ids = index_ids
             return self
         else:
@@ -48,7 +48,7 @@ class Miner(object):
         if output == "database":
             raise NotImplementedError
         else:
-            if self.mode == "getter" and self.input_file is None:
+            if self.mode == "getter" and self.input_file_path is None:
                 raise ValueError("Please define input file before calling to()")
             output_path = Path(output)
             self.output_file_path = self._new_file_name(
@@ -61,7 +61,7 @@ class Miner(object):
             raise ValueError("The API mode mismatch the miner mode")
 
         if self.mode == "getter":
-            self._file_ids_to_tweets_in_json(self, api, self.input_file)
+            self._file_ids_to_tweets_in_json(self, api, self.input_file_path)
 
         elif self.mode == "stream":
             # TODO: Create a Stream with the correct config
@@ -119,7 +119,7 @@ class Miner(object):
         if "." not in extension:
             raise SyntaxError("Missing '.' character in the extension name")
         dir_path = Path(dir_name)
-        new_name = Path.joinpath(*Path(self.input_file).splitall()[-2:-1])
+        new_name = Path.joinpath(*Path(self.input_file_path).splitall()[-2:-1])
         output_path = dir_name / new_name + extension
         return output_path
 
