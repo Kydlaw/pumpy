@@ -18,7 +18,7 @@ class Miner(object):
     def __init__(self, mode: str):
         self.mode = mode
         self.input_file_path = None
-        self.output_file_path = None
+        self.output_file_path = str()
         self.index_ids = 0
         self.keywords: List[str] = list()
         self.locations: List[List[int]] = list()
@@ -48,7 +48,13 @@ class Miner(object):
             Path -- Path object toward the file where the data will be stored.
         """
         if output == "database":
+            self._output = output
             raise NotImplementedError
+        elif output == "raw":
+            self._output = output
+        else:
+            self._output = "file"
+
         if self.input_file_path is None and self.mode == "getter":
             raise ValueError("Please define input file before calling to()")
 
@@ -73,9 +79,17 @@ class Miner(object):
             self._file_ids_to_tweets_in_json(self, api, self.input_file_path)
 
         elif self.mode == "stream":
-            stream = Stream(api[0], self._listener())
-            # TODO: Write the result into a file
-            stream.filter(track=self.keywords, locations=self.locations, is_async=True)
+            if self._output == "raw":
+                stream = Stream(api[0], self._listener(self))
+                stream.filter(
+                    track=self.keywords, locations=self.locations, is_async=True
+                )
+            elif self._output == "file":
+                file = open(self.output_file_path, "a")
+                stream = Stream(api[0], self._listener(file))
+                stream.filter(
+                    track=self.keywords, locations=self.locations, is_async=True
+                )
 
         else:
             raise ValueError(
@@ -126,17 +140,22 @@ class Miner(object):
         self._write_tweets_through_ids(api, ids, self.output_file_path)
 
     @staticmethod
-    def _listener():
+    def _listener(file) -> "Listener":
         class Listener(StreamListener):
+            def __init__(self, writing_file, api=None):
+                self.writing_file = writing_file
+                self.api = api or API()
+
             def on_status(self, status):
                 # TODO: Define the right information that I want to store
                 # TODO: Store the information into a file
-                print(status.text)
-
-            def on_error(self, status):
+                json.dump(status._json, self.writing_file, ensure_ascii=False, indent=4)
                 print(status)
 
-        return Listener()
+            def on_error(self, status_code):
+                print(status_code)
+
+        return Listener(file)
 
     @staticmethod
     def _new_file_name(self, dir_name: str, extension: str) -> Path:
