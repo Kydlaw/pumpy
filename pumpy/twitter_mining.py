@@ -65,9 +65,9 @@ class Miner(object):
             )
         else:
             i = 0
-            while Path("stream%s.json" % i).exists():
+            while Path("stream%s.txt" % i).exists():
                 i += 1
-            new_file_path = Path(output) + Path("stream%s.json" % i)
+            new_file_path = Path(output) + Path("stream%s.txt" % i)
             self.output_file_path = new_file_path.touch()
 
     def mine(self, api: tuple):
@@ -145,12 +145,18 @@ class Miner(object):
             def __init__(self, writing_file, api=None):
                 self.writing_file = writing_file
                 self.api = api or API()
+                self.index = 0
 
             def on_status(self, status):
                 # TODO: Define the right information that I want to store
                 # TODO: Store the information into a file
-                json.dump(status._json, self.writing_file, ensure_ascii=False, indent=4)
+
+                status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
+                self.writing_file.write(status + "\n")
                 print(status)
+                self.index += 1
+                if self.index % 10 == 0:
+                    self.writing_file.flush()
 
             def on_error(self, status_code):
                 print(status_code)
