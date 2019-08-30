@@ -70,11 +70,13 @@ class Miner(object):
                 self, output_path, extension=".json"
             )
         else:
-            i = 0
-            while Path("stream%s.txt" % i).exists():
-                i += 1
-            new_file_path = Path(output) + Path("stream%s.txt" % i)
-            self.output_file_path = new_file_path.touch()
+            # TODO: Add test
+            output_path = Path(output)
+            file_index = 0
+            while (output_path + f"stream{file_index}.txt").exists():
+                file_index += 1
+            new_file_path = output_path + f"stream{file_index}.txt"
+            self.output_file_path = new_file_path
 
     def mine(self, api: tuple):
         # TODO: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
