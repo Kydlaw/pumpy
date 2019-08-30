@@ -18,18 +18,22 @@ logger.add(LOGGER_ROOT + "general.log")
 
 class Miner(object):
     def __init__(self, mode: str):
-        self.mode = mode
-        self.input_file_path = None
-        self.output_file_path = str()
-        self.index_ids = 0
+        if mode == "getter" or mode == "stream":
+            self.mode: str = mode
+        else:
+            raise ValueError("'mode' should 'getter' or 'stream")
+        self.input_file_path: Path = None
+        self.output_file_path: str = str()
+        self.index_ids: int = 0
         self.keywords: List[str] = list()
         self.locations: List[List[int]] = list()
 
     def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
-        path = Path(path_input_file)
-        if not path.exists():
-            raise FileNotFoundError("Wrong file or file path")
         if self.mode == "getter":
+            try:
+                path: Path = Path(path_input_file)
+            except FileNotFoundError as err:
+                print(err.strerror, "Wrong file or file path")
             self.input_file_path = Path(path)
             self.index_ids = index_ids
             return self
@@ -49,6 +53,9 @@ class Miner(object):
         Returns:
             Path -- Path object toward the file where the data will be stored.
         """
+        if self.input_file_path is None and self.mode == "getter":
+            raise ValueError("Please define input file before calling to()")
+
         if output == "database":
             self._output = output
             raise NotImplementedError
@@ -56,9 +63,6 @@ class Miner(object):
             self._output = output
         else:
             self._output = "file"
-
-        if self.input_file_path is None and self.mode == "getter":
-            raise ValueError("Please define input file before calling to()")
 
         if self.mode == "getter":
             output_path = Path(output)
@@ -108,7 +112,7 @@ class Miner(object):
 
     def search(self, *args) -> None:
         if self.mode != "stream":
-            raise ValueError("Invalid mode. Mode should be 'stream'.")
+            raise ValueError("Invalid 'mode'. Mode should be 'stream'.")
         for elt in args:
             if type(elt) == str:
                 self.keywords.append(elt)
