@@ -156,30 +156,6 @@ class Miner(object):
         self._write_tweets_through_ids(api, ids, self.output_file_path)
 
     @staticmethod
-    def _listener(file) -> "Listener":
-        class Listener(StreamListener):
-            def __init__(self, writing_file, api=None):
-                self.writing_file = writing_file
-                self.api = api or API()
-                self.index = 0
-
-            def on_status(self, status):
-                # TODO: Define the right information that I want to store
-                # TODO: Store the information into a file
-
-                status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-                self.writing_file.write(status + "\n")
-                print(status)
-                self.index += 1
-                if self.index % 10 == 0:
-                    self.writing_file.flush()
-
-            def on_error(self, status_code):
-                print(status_code)
-
-        return Listener(file)
-
-    @staticmethod
     def _new_file_name(self, dir_name: str, extension: str) -> Path:
         """Provide the path of a new file using the parent dir name.
         
@@ -197,6 +173,17 @@ class Miner(object):
         output_path = dir_name / new_name + extension
         return output_path
 
+    @staticmethod
+    def _listener(output_mode, file=None, config=None):
+        if output_mode == "raw":
+            return ListenerRaw()
+        elif output_mode == "file":
+            return ListenerFile(file)
+        elif output_mode == "database":
+            return ListenerDB(config)
+        else:
+            raise ValueError("Invalid output mode passed.")
+
 
 def extract_ids(path):
     tweet_ids = list()
@@ -207,3 +194,40 @@ def extract_ids(path):
                 tweet_ids.append(tweet_id.group(0))
     return tweet_ids
 
+
+class ListenerRaw(StreamListener):
+    def __init__(self, writing_file, api=None):
+        StreamListener.__init__(api=api)
+
+    def on_status(self, status):
+        status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
+        print(status)
+
+
+class ListenerFile(StreamListener):
+    def __init__(self, writing_file, api=None):
+        StreamListener.__init__(self, api)
+        self.writing_file = writing_file
+        self.index = 0
+
+    def on_status(self, status):
+        status = status.text.replace("\n", " \\n ")
+        self.writing_file.write(status + "\n")
+        self.index += 1
+        if self.index % 10 == 0:
+            self.writing_file.flush()
+
+    def on_error(self, status_code):
+        logger.add(status_code)
+
+    def on_disconnect(self, notice):
+        self.writing_file.close()
+
+
+class ListenerDB(StreamListener):
+    def __init__(self, config, api=None):
+        StreamListener.__init__(self, api)
+        self.config = config
+
+    def on_status(self, status):
+        raise NotImplementedError
