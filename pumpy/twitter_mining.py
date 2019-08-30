@@ -7,11 +7,13 @@ from typing import List
 import tweepy
 from loguru import logger
 from path import Path
-from tweepy import API, Stream, StreamListener
+from tweepy import API, Stream, StreamListener, Status
 
 from .creds import AuthApi
 
 LOGGER_ROOT = "./logs/"
+
+logger.add(LOGGER_ROOT + "general.log")
 
 
 class Miner(object):
@@ -76,20 +78,28 @@ class Miner(object):
             raise ValueError("The API mode mismatch the miner mode")
 
         if self.mode == "getter":
+            logger.debug("Start mining in 'getter' mode.")
             self._file_ids_to_tweets_in_json(self, api, self.input_file_path)
 
         elif self.mode == "stream":
             if self._output == "raw":
-                stream = Stream(api[0], self._listener(self))
+                logger.debug("Start mining in 'stream' mode, with a console output.")
+                stream = Stream(api[0], self._listener(self, self._output))
                 stream.filter(
                     track=self.keywords, locations=self.locations, is_async=True
                 )
             elif self._output == "file":
-                file = open(self.output_file_path, "a")
-                stream = Stream(api[0], self._listener(file))
+                # TODO: Pass the file name to the logger.
+                logger.debug("Start mining in 'stream' mode, into a file.")
+                file = open(self.output_file_path, "a+")
+                stream = Stream(api[0], self._listener(self._output, file=file))
                 stream.filter(
                     track=self.keywords, locations=self.locations, is_async=True
                 )
+            elif self._output == "database":
+                # TODO: Pass database config to the logger.
+                logger.debug("Start mining in 'stream' mode, into the database.")
+                raise NotImplementedError
 
         else:
             raise ValueError(
