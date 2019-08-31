@@ -7,27 +7,33 @@ from typing import List
 import tweepy
 from loguru import logger
 from path import Path
-from tweepy import API, Stream, StreamListener
+from tweepy import API, Stream, StreamListener, Status
 
 from .creds import AuthApi
 
 LOGGER_ROOT = "./logs/"
 
+logger.add(LOGGER_ROOT + "general.log")
+
 
 class Miner(object):
     def __init__(self, mode: str):
-        self.mode = mode
-        self.input_file_path = None
-        self.output_file_path = str()
-        self.index_ids = 0
+        if mode == "getter" or mode == "stream":
+            self.mode: str = mode
+        else:
+            raise ValueError("'mode' should 'getter' or 'stream")
+        self.input_file_path: Path = None
+        self.output_file_path: str = str()
+        self.index_ids: int = 0
         self.keywords: List[str] = list()
         self.locations: List[List[int]] = list()
 
     def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
-        path = Path(path_input_file)
-        if not path.exists():
-            raise FileNotFoundError("Wrong file or file path")
         if self.mode == "getter":
+            try:
+                path: Path = Path(path_input_file)
+            except FileNotFoundError as err:
+                print(err.strerror, "Wrong file or file path")
             self.input_file_path = Path(path)
             self.index_ids = index_ids
             return self
@@ -47,6 +53,9 @@ class Miner(object):
         Returns:
             Path -- Path object toward the file where the data will be stored.
         """
+        if self.input_file_path is None and self.mode == "getter":
+            raise ValueError("Please define input file before calling to()")
+
         if output == "database":
             self._output = output
             raise NotImplementedError
@@ -55,20 +64,19 @@ class Miner(object):
         else:
             self._output = "file"
 
-        if self.input_file_path is None and self.mode == "getter":
-            raise ValueError("Please define input file before calling to()")
-
         if self.mode == "getter":
             output_path = Path(output)
             self.output_file_path = self._new_file_name(
                 self, output_path, extension=".json"
             )
         else:
-            i = 0
-            while Path("stream%s.txt" % i).exists():
-                i += 1
-            new_file_path = Path(output) + Path("stream%s.txt" % i)
-            self.output_file_path = new_file_path.touch()
+            # TODO: Add test
+            output_path = Path(output)
+            file_index = 0
+            while (output_path + f"stream{file_index}.txt").exists():
+                file_index += 1
+            new_file_path = output_path + f"stream{file_index}.txt"
+            self.output_file_path = new_file_path
 
     def mine(self, api: tuple):
         # TODO: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
@@ -76,20 +84,28 @@ class Miner(object):
             raise ValueError("The API mode mismatch the miner mode")
 
         if self.mode == "getter":
+            logger.debug("Start mining in 'getter' mode.")
             self._file_ids_to_tweets_in_json(self, api, self.input_file_path)
 
         elif self.mode == "stream":
             if self._output == "raw":
-                stream = Stream(api[0], self._listener(self))
+                logger.debug("Start mining in 'stream' mode, with a console output.")
+                stream = Stream(api[0], self._listener(self, self._output))
                 stream.filter(
                     track=self.keywords, locations=self.locations, is_async=True
                 )
             elif self._output == "file":
-                file = open(self.output_file_path, "a")
-                stream = Stream(api[0], self._listener(file))
+                # TODO: Pass the file name to the logger.
+                logger.debug("Start mining in 'stream' mode, into a file.")
+                file = open(self.output_file_path, "a+")
+                stream = Stream(api[0], self._listener(self._output, file=file))
                 stream.filter(
                     track=self.keywords, locations=self.locations, is_async=True
                 )
+            elif self._output == "database":
+                # TODO: Pass database config to the logger.
+                logger.debug("Start mining in 'stream' mode, into the database.")
+                raise NotImplementedError
 
         else:
             raise ValueError(
@@ -98,7 +114,7 @@ class Miner(object):
 
     def search(self, *args) -> None:
         if self.mode != "stream":
-            raise ValueError("Invalid mode. Mode should be 'stream'.")
+            raise ValueError("Invalid 'mode'. Mode should be 'stream'.")
         for elt in args:
             if type(elt) == str:
                 self.keywords.append(elt)
@@ -140,28 +156,6 @@ class Miner(object):
         self._write_tweets_through_ids(api, ids, self.output_file_path)
 
     @staticmethod
-    def _listener(file) -> "Listener":
-        # TODO: 1. create different Listener according to the writing chosen
-        class Listener(StreamListener):
-            def __init__(self, writing_file, api=None):
-                self.writing_file = writing_file
-                self.api = api or API()
-                self.index = 0
-
-            def on_status(self, status):
-                status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-                self.writing_file.write(status + "\n")
-                print(status)
-                self.index += 1
-                if self.index % 10 == 0:
-                    self.writing_file.flush()
-
-            def on_error(self, status_code):
-                print(status_code)
-
-        return Listener(file)
-
-    @staticmethod
     def _new_file_name(self, dir_name: str, extension: str) -> Path:
         """Provide the path of a new file using the parent dir name.
         
@@ -179,6 +173,17 @@ class Miner(object):
         output_path = dir_name / new_name + extension
         return output_path
 
+    @staticmethod
+    def _listener(output_mode, file=None, config=None):
+        if output_mode == "raw":
+            return ListenerRaw()
+        elif output_mode == "file":
+            return ListenerFile(file)
+        elif output_mode == "database":
+            return ListenerDB(config)
+        else:
+            raise ValueError("Invalid output mode passed.")
+
 
 def extract_ids(path):
     tweet_ids = list()
@@ -189,3 +194,40 @@ def extract_ids(path):
                 tweet_ids.append(tweet_id.group(0))
     return tweet_ids
 
+
+class ListenerRaw(StreamListener):
+    def __init__(self, writing_file, api=None):
+        StreamListener.__init__(api=api)
+
+    def on_status(self, status):
+        status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
+        print(status)
+
+
+class ListenerFile(StreamListener):
+    def __init__(self, writing_file, api=None):
+        StreamListener.__init__(self, api)
+        self.writing_file = writing_file
+        self.index = 0
+
+    def on_status(self, status):
+        status = status.text.replace("\n", " \\n ")
+        self.writing_file.write(status + "\n")
+        self.index += 1
+        if self.index % 10 == 0:
+            self.writing_file.flush()
+
+    def on_error(self, status_code):
+        logger.add(status_code)
+
+    def on_disconnect(self, notice):
+        self.writing_file.close()
+
+
+class ListenerDB(StreamListener):
+    def __init__(self, config, api=None):
+        StreamListener.__init__(self, api)
+        self.config = config
+
+    def on_status(self, status):
+        raise NotImplementedError

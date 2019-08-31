@@ -2,6 +2,7 @@ from pumpy.twitter_mining import Miner
 import pytest
 from pytest_mock import mocker
 from path import Path
+import os
 
 
 @pytest.fixture
@@ -17,11 +18,6 @@ def miners():
 def test_mode(minerg, miners):
     assert minerg.mode == "getter"
     assert miners.mode == "stream"
-
-
-def test_from_file_exist(minerg, miners):
-    with pytest.raises(FileNotFoundError):
-        miners.from_file("../data/CrisisLexT26/Colorado_2016_ids.csv", 1)
 
 
 def test_from_file_getter_only(mocker, miners):
@@ -42,8 +38,16 @@ def test_to_no_input_file_specified(minerg):
         minerg.to("this/is/a/path.txt")
 
 
-def test_to_output(minerg, tmp_path):
+# def test_to_file_incrementation(tmp_path, miners):
+#     d = tmp_path / "data/tweets"
+#     d.mkdir()
+#     miners.to(d)
+#     assert d / "stream0.txt" == miners.output_file_path
+#     miners.to(d)
+#     assert d / "stream1.txt" == miners.output_file_path
 
+
+def test_to_output(minerg, tmp_path):
     p = tmp_path / "data/tweets/"
     minerg.input_file_path = "data/CrisisLexT26/Colorado_wildfire/Colorado_ids.csv"
     minerg.to(p)
