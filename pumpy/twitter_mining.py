@@ -2,14 +2,16 @@ import csv
 import json
 import re
 import typing
-from typing import List
+from typing import Any, List, Union
 
 import tweepy
 from loguru import logger
 from path import Path
-from tweepy import API, Stream, StreamListener, Status
+from pymongo import MongoClient
+from tweepy import API, Status, Stream, StreamListener
 
 from .creds import AuthApi
+from .mongodb_lite import MongoDB
 
 LOGGER_ROOT = "./logs/"
 
@@ -40,7 +42,7 @@ class Miner(object):
         else:
             raise ValueError("from_file() method is only available in 'getter' mode")
 
-    def to(self, output) -> None:
+    def to(self, output) -> Union[None, "Miner"]:
         """Define where the data will be sent. It can be stdout, in a file or in a database
         
         Arguments:
@@ -58,25 +60,24 @@ class Miner(object):
 
         if output == "database":
             self._output = output
-            raise NotImplementedError
+            return self
         elif output == "raw":
             self._output = output
         else:
             self._output = "file"
-
-        if self.mode == "getter":
-            output_path = Path(output)
-            self.output_file_path = self._new_file_name(
-                self, output_path, extension=".json"
-            )
-        else:
-            # TODO: Add test
-            output_path = Path(output)
-            file_index = 0
-            while (output_path + f"stream{file_index}.txt").exists():
-                file_index += 1
-            new_file_path = output_path + f"stream{file_index}.txt"
-            self.output_file_path = new_file_path
+            if self.mode == "getter":
+                output_path = Path(output)
+                self.output_file_path = self._new_file_name(
+                    self, output_path, extension=".json"
+                )
+            else:
+                # TODO: Add test
+                output_path = Path(output)
+                file_index = 0
+                while (output_path + f"stream{file_index}.txt").exists():
+                    file_index += 1
+                new_file_path = output_path + f"stream{file_index}.txt"
+                self.output_file_path = new_file_path
 
     def mine(self, api: tuple):
         # TODO: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
@@ -105,7 +106,12 @@ class Miner(object):
             elif self._output == "database":
                 # TODO: Pass database config to the logger.
                 logger.debug("Start mining in 'stream' mode, into the database.")
-                raise NotImplementedError
+                stream = Stream(
+                    api[0], self._listener(self._output, config=self.config)
+                )
+                stream.filter(
+                    track=self.keywords, locations=self.locations, is_async=True
+                )
 
         else:
             raise ValueError(
@@ -123,8 +129,15 @@ class Miner(object):
             else:
                 raise ValueError("Invalid argument type")
 
-    def db_config(self):
-        raise NotImplementedError
+    def db_config(
+        self,
+        host="localhost",
+        port=27017,
+        db="test_database",
+        collection="test_collection",
+    ) -> None:
+        config = {"host": host, "port": port, "db": db, "collection": collection}
+        self.config = config
 
     @staticmethod
     def _write_tweets_through_ids(
@@ -207,8 +220,8 @@ class ListenerRaw(StreamListener):
 class ListenerFile(StreamListener):
     def __init__(self, writing_file, api=None):
         StreamListener.__init__(self, api)
-        self.writing_file = writing_file
-        self.index = 0
+        self.writing_file: Any = writing_file
+        self.index: int = 0
 
     def on_status(self, status):
         status = status.text.replace("\n", " \\n ")
@@ -227,7 +240,9 @@ class ListenerFile(StreamListener):
 class ListenerDB(StreamListener):
     def __init__(self, config, api=None):
         StreamListener.__init__(self, api)
-        self.config = config
+        self.client = MongoClient(config["host"], config["port"])
+        self.db = self.client[config["db"]]
+        self.collection = self.db[config["collection"]]
 
     def on_status(self, status):
-        raise NotImplementedError
+        post_id = self.collection.insert_one(status._json)

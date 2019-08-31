@@ -15,7 +15,7 @@ def main1():
     print(miner1.output_file_path)
 
 
-def main2():
+def stream2file():
     api = AuthApi(
         "stream",
         token="pUhieXUga8cOYhAd9aVrTwljM",
@@ -29,5 +29,19 @@ def main2():
     miner.mine(api)
 
 
+def stream2db():
+    api = AuthApi(
+        "stream",
+        token="pUhieXUga8cOYhAd9aVrTwljM",
+        token_secret="w1XVYYdctDpEuvg3e7xZNYU1CweUNZGRsnhIBybRDCa4mpv3N8",
+        key="981955283676254208-VEhPUugVV6pCSUIp4C8Sfl641DNPAyo",
+        key_secret="ItEustxX9YMaDACmNHFWXFjE8LbkXPVFxFBUNHocrqyCy",
+    ).generate_api
+    miner = Miner("stream")
+    miner.to("database").db_config(collection="maman")
+    miner.search("banane")
+    miner.mine(api)
+
+
 if __name__ == "__main__":
-    main2()
+    stream2db()
