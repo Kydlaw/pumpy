@@ -141,6 +141,7 @@ class Miner(object):
 
     @staticmethod
     def _listener(file) -> "Listener":
+        # TODO: 1. create different Listener according to the writing chosen
         class Listener(StreamListener):
             def __init__(self, writing_file, api=None):
                 self.writing_file = writing_file
@@ -148,9 +149,6 @@ class Miner(object):
                 self.index = 0
 
             def on_status(self, status):
-                # TODO: Define the right information that I want to store
-                # TODO: Store the information into a file
-
                 status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
                 self.writing_file.write(status + "\n")
                 print(status)
