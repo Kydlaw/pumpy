@@ -15,33 +15,38 @@ from .mongodb_lite import MongoDB
 
 LOGGER_ROOT = "./logs/"
 
-logger.add(LOGGER_ROOT + "general.log")
+logger.add(LOGGER_ROOT + "general.log", level="DEBUG", rotation="5 MB")
 
 
 class Miner(object):
+    @logger.catch()
     def __init__(self, mode: str):
+        logger.info(f"Creating miner in mode '{mode}'")
         if mode == "getter" or mode == "stream":
             self.mode: str = mode
         else:
-            raise ValueError("'mode' should 'getter' or 'stream")
+            logger.error("The 'mode' used was not 'stream' nor 'getter'")
         self.input_file_path: Path = None
         self.output_file_path: str = str()
         self.index_ids: int = 0
         self.keywords: List[str] = list()
         self.locations: List[List[int]] = list()
 
+    @logger.catch()
     def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
-        if self.mode == "getter":
-            try:
-                path: Path = Path(path_input_file)
-            except FileNotFoundError as err:
-                print(err.strerror, "Wrong file or file path")
-            self.input_file_path = Path(path)
-            self.index_ids = index_ids
-            return self
-        else:
-            raise ValueError("from_file() method is only available in 'getter' mode")
+        logger.info(f"Mining data from a file located at {path_input_file}")
+        logger.info(f"Text column is located at index {index_ids}")
+        if self.mode != "getter":
+            logger.error("from_file() method is only available in 'getter' mode")
+        try:
+            path: Path = Path(path_input_file)
+        except FileNotFoundError as err:
+            logger.error("Wrong file or file path")
+        self.input_file_path = path
+        self.index_ids = index_ids
+        return self
 
+    @logger.catch()
     def to(self, output) -> Union[None, "Miner"]:
         """Define where the data will be sent. It can be stdout, in a file or in a database
         
@@ -56,12 +61,14 @@ class Miner(object):
             Path -- Path object toward the file where the data will be stored.
         """
         if self.input_file_path is None and self.mode == "getter":
-            raise ValueError("Please define input file before calling to()")
+            logger.error("Please define input file before calling .to()")
 
         if output == "database":
+            logger.info("Sending data to database")
             self._output = output
             return self
-        elif output == "raw":
+        elif output == "console":
+            logger.info("Sending data to the console.")
             self._output = output
         else:
             self._output = "file"
@@ -70,6 +77,7 @@ class Miner(object):
                 self.output_file_path = self._new_file_name(
                     self, output_path, extension=".json"
                 )
+                logger.info(f"Sending data to {self.output_file_path}.")
             else:
                 # TODO: Add test
                 output_path = Path(output)
@@ -78,20 +86,20 @@ class Miner(object):
                     file_index += 1
                 new_file_path = output_path + f"stream{file_index}.txt"
                 self.output_file_path = new_file_path
+                logger.info(f"Sending data to {new_file_path}.")
 
     def mine(self, api: tuple):
-        # TODO: Add a valid logger -> logger.add(LOGGER_ROOT + str(path_tweet_ids_csv.dirname().basename()) + ".log")
+        logger.info("Miner start")
         if api[1] != self.mode:
-            raise ValueError("The API mode mismatch the miner mode")
+            logger.error("The API mode mismatch the miner mode")
 
         if self.mode == "getter":
-            logger.debug("Start mining in 'getter' mode.")
             self._file_ids_to_tweets_in_json(self, api, self.input_file_path)
 
         elif self.mode == "stream":
-            if self._output == "raw":
-                logger.debug("Start mining in 'stream' mode, with a console output.")
-                stream = Stream(api[0], self._listener(self, self._output))
+            if self._output == "console":
+                logger.debug(f"The output mode is set to '{self._output}'")
+                stream = Stream(api[0], self._listener(self._output))
                 stream.filter(
                     track=self.keywords, locations=self.locations, is_async=True
                 )
@@ -130,16 +138,13 @@ class Miner(object):
                 raise ValueError("Invalid argument type")
 
     def db_config(
-        self,
-        host="localhost",
-        port=27017,
-        db="test_database",
-        collection="test_collection",
+        self, host="localhost", port=27017, db="twitter", collection="tweet"
     ) -> None:
         config = {"host": host, "port": port, "db": db, "collection": collection}
         self.config = config
 
     @staticmethod
+    @logger.catch()
     def _write_tweets_through_ids(
         api: API, list_ids: List[str], path_tweet_json: Path
     ) -> None:
@@ -147,17 +152,17 @@ class Miner(object):
         with open(str(path_tweet_json), "a+", encoding="utf-8") as resulting_json:
             for tweet_id in list_ids:
                 try:
-                    tweet = api.get_status(tweet_id)._json
+                    tweet = api[0].get_status(tweet_id)._json
                 except tweepy.error.TweepError as err:
-                    pass
-                    # TODO logger.warning(f"{tweet_id} | {err}")
+                    logger.warning(f"{tweet_id} | {err}")
                 else:
-                    # TODO logger.info("OK")
                     tweets.append(tweet)
 
             json.dump(tweets, resulting_json, ensure_ascii=False, indent=4)
+            # TODO Add information about the tweet acquisition (% of tweets retrieved)
 
     @staticmethod
+    @logger.catch()
     def _file_ids_to_tweets_in_json(self, api: API, path_tweet_ids_csv: Path) -> None:
         # TODO: yield directement les ids au lieu de créer une liste
         ids: List[str] = list()
@@ -179,20 +184,24 @@ class Miner(object):
         Returns:
             output_path {Path} -- The new path generated.
         """
-        if "." not in extension:
-            raise SyntaxError("Missing '.' character in the extension name")
         dir_path = Path(dir_name)
         new_name = Path.joinpath(*Path(self.input_file_path).splitall()[-2:-1])
         output_path = dir_name / new_name + extension
         return output_path
 
     @staticmethod
+    @logger.catch()
     def _listener(output_mode, file=None, config=None):
-        if output_mode == "raw":
-            return ListenerRaw()
+        logger.debug(f"Output mode is set on {output_mode._output}")
+        if output_mode == "console":
+            logger.info("ListenerConsole picked")
+            return ListenerConsole()
         elif output_mode == "file":
+            logger.info("ListenerFile picked")
             return ListenerFile(file)
         elif output_mode == "database":
+            logger.info("ListenerDB picked")
+            logger.info("Config used: {config}", config=config)
             return ListenerDB(config)
         else:
             raise ValueError("Invalid output mode passed.")
@@ -208,9 +217,9 @@ def extract_ids(path):
     return tweet_ids
 
 
-class ListenerRaw(StreamListener):
-    def __init__(self, writing_file, api=None):
-        StreamListener.__init__(api=api)
+class ListenerConsole(StreamListener):
+    def __init__(self, api=None):
+        StreamListener.__init__(self, api)
 
     def on_status(self, status):
         status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
@@ -223,6 +232,7 @@ class ListenerFile(StreamListener):
         self.writing_file: Any = writing_file
         self.index: int = 0
 
+    @logger.catch()
     def on_status(self, status):
         status = status.text.replace("\n", " \\n ")
         self.writing_file.write(status + "\n")
@@ -243,6 +253,14 @@ class ListenerDB(StreamListener):
         self.client = MongoClient(config["host"], config["port"])
         self.db = self.client[config["db"]]
         self.collection = self.db[config["collection"]]
+        self.index_RT: int = 0
 
+    @logger.catch()
     def on_status(self, status):
-        post_id = self.collection.insert_one(status._json)
+        if status.text[:2] == "RT" and self.index_RT % 10 != 0:
+            self.index_RT += 1
+        elif status.text[:2] == "RT" and self.index_RT % 10 == 0:
+            post_id = self.collection.insert_one(status.text)
+            self.index_RT = 0
+        else:
+            post_id = self.collection.insert_one(status.text)

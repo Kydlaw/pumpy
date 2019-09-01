@@ -38,10 +38,39 @@ def stream2db():
         key_secret="ItEustxX9YMaDACmNHFWXFjE8LbkXPVFxFBUNHocrqyCy",
     ).generate_api
     miner = Miner("stream")
-    miner.to("database").db_config(collection="maman")
-    miner.search("banane")
+    miner.to("database").db_config()
+    miner.search("gay", "islam", "trump", "raciste", "cul")
+    miner.mine(api)
+
+
+def stream2raw():
+    api = AuthApi(
+        "stream",
+        token="pUhieXUga8cOYhAd9aVrTwljM",
+        token_secret="w1XVYYdctDpEuvg3e7xZNYU1CweUNZGRsnhIBybRDCa4mpv3N8",
+        key="981955283676254208-VEhPUugVV6pCSUIp4C8Sfl641DNPAyo",
+        key_secret="ItEustxX9YMaDACmNHFWXFjE8LbkXPVFxFBUNHocrqyCy",
+    ).generate_api
+    miner = Miner("stream")
+    miner.to("console")
+    miner.search("gay", "islam", "trump", "raciste", "cul")
+    miner.mine(api)
+
+
+def getter():
+    api = AuthApi(
+        "getter",
+        token="pUhieXUga8cOYhAd9aVrTwljM",
+        token_secret="w1XVYYdctDpEuvg3e7xZNYU1CweUNZGRsnhIBybRDCa4mpv3N8",
+        key="981955283676254208-VEhPUugVV6pCSUIp4C8Sfl641DNPAyo",
+        key_secret="ItEustxX9YMaDACmNHFWXFjE8LbkXPVFxFBUNHocrqyCy",
+    ).generate_api
+    miner = Miner("getter")
+    miner.from_file(
+        "/home/kyd/Code/pumpy/data/Colorade_wildfire/Colorado_ids.csv", 1
+    ).to("/home/kyd/Code/pumpy/data/tweets/")
     miner.mine(api)
 
 
 if __name__ == "__main__":
-    stream2db()
+    stream2raw()
