@@ -227,24 +227,20 @@ def extract_ids(path):
 
 
 class ListenerConsole(StreamListener):
-    def __init__(self, api=None):
+    def __init__(self, sample=15, api=None):
         StreamListener.__init__(self, api)
-        self.index_RT: int = 0
+        self.index_RT: int = 1
+        self.sample: int = sample
 
     @logger.catch()
     def on_status(self, status):
-        # if status.text[:2] == "RT":
-        #     self.index_RT += 1
-        # elif status.text[:2] == "RT" and self.index_RT % 100 == 0:
-        #     status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-        #     print(status)
-        #     print("_____________________________________________")
-        #     print(self.index_RT)
-        #     self.index_RT = 0
-        # else:
-        #     status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-        #     print(status)
-        if status.text[:2] == "RT":
+        if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
+            self.index_RT += 1
+        elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
+            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
+            print(status)
+            self.index_RT = 1
+        else:
             status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
             print(status)
 
@@ -257,8 +253,16 @@ class ListenerFile(StreamListener):
 
     @logger.catch()
     def on_status(self, status):
-        status = status.text.replace("\n", " \\n ")
-        self.writing_file.write(status + "\n")
+        if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
+            self.index_RT += 1
+        elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
+            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
+            self.writing_file.write(status + "\n")
+            self.index_RT = 1
+        else:
+            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
+            self.writing_file.write(status + "\n")
+
         self.index += 1
         if self.index % 10 == 0:
             self.writing_file.flush()
@@ -277,15 +281,15 @@ class ListenerDB(StreamListener):
         self.client = MongoClient(config["host"], config["port"])
         self.db = self.client[config["db"]]
         self.collection = self.db[config["collection"]]
-        self.index_RT: int = 0
+        self.index_RT: int = 1
 
     @logger.catch()
     def on_status(self, status):
-        if status.text[:2] == "RT" and self.index_RT % 10 != 0:
+        if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
             self.index_RT += 1
-        elif status.text[:2] == "RT" and self.index_RT % 10 == 0:
+        elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
             post_id = self.collection.insert_one(status.text)
-            self.index_RT = 0
+            self.index_RT = 1
         else:
             post_id = self.collection.insert_one(status.text)
 
