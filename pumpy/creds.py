@@ -80,18 +80,3 @@ class AuthApi(API):
             return (auth, self.mode)
         else:
             raise ValueError("The 'mode' argument should be 'stream' or 'getter'")
-
-
-if __name__ == "__main__":
-    api1 = AuthApi(
-        mode="getter",
-        token="pUhieXUga8cOYhAd9aVrTwljM",
-        token_secret="w1XVYYdctDpEuvg3e7xZNYU1CweUNZGRsnhIBybRDCa4mpv3N8",
-        key="981955283676254208-VEhPUugVV6pCSUIp4C8Sfl641DNPAyo",
-        key_secret="ItEustxX9YMaDACmNHFWXFjE8LbkXPVFxFBUNHocrqyCy",
-    ).generate_api
-    api2 = AuthApi(mode="stream", token="", token_secret="")
-    api3 = AuthApi(mode="getter", token="", token_secret="")
-    print(type(api1[0]))
-    print(api2)
-    print(api3)
