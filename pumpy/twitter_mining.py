@@ -34,6 +34,12 @@ class Miner(object):
 
     @logger.catch()
     def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
+        """In 'getter' mode, define where are located the data that the user user wants
+        to retrieve.
+        
+        Returns:
+            Miner -- the current object.
+        """
         logger.info("Entering from_file definition")
         logger.info(f"Mining data from a file located at {path_input_file}")
         logger.info(f"Text column is located at index {index_ids}")
@@ -53,10 +59,6 @@ class Miner(object):
         
         Arguments:
             output {str} -- Path toward the directory where the data will be stored.
-        
-        Raises:
-            NotImplementedError: pass
-            ValueError: Raised in getter mode if no file was given through from_file()
         
         Returns:
             Path -- Path object toward the file where the data will be stored.
@@ -108,16 +110,17 @@ class Miner(object):
                     track=self.keywords, locations=self.locations, is_async=True
                 )
             elif self._output == "file":
-                # TODO: Pass the file name to the logger.
-                logger.debug("Start mining in 'stream' mode, into a file.")
+                logger.info(
+                    "Start mining in 'stream' mode, into {file}",
+                    file=self.output_file_path,
+                )
                 file = open(self.output_file_path, "a+")
                 stream = Stream(api[0], self._listener(self._output, file=file))
                 stream.filter(
                     track=self.keywords, locations=self.locations, is_async=True
                 )
             elif self._output == "database":
-                # TODO: Pass database config to the logger.
-                logger.debug("Start mining in 'stream' mode, into the database.")
+                logger.info("Start mining in 'stream' mode into the database.")
                 stream = Stream(
                     api[0], self._listener(self._output, config=self.config)
                 )
@@ -146,6 +149,7 @@ class Miner(object):
     ) -> None:
         logger.info("Entering db configuration")
         config = {"host": host, "port": port, "db": db, "collection": collection}
+        logger.info("Database configuration set to {config}", config=config)
         self.config = config
 
     @staticmethod
@@ -227,6 +231,7 @@ class ListenerConsole(StreamListener):
         StreamListener.__init__(self, api)
         self.index_RT: int = 0
 
+    @logger.catch()
     def on_status(self, status):
         # if status.text[:2] == "RT":
         #     self.index_RT += 1
@@ -243,6 +248,7 @@ class ListenerConsole(StreamListener):
             status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
             print(status)
 
+
 class ListenerFile(StreamListener):
     def __init__(self, writing_file, api=None):
         StreamListener.__init__(self, api)
@@ -257,6 +263,7 @@ class ListenerFile(StreamListener):
         if self.index % 10 == 0:
             self.writing_file.flush()
 
+    @logger.catch()
     def on_error(self, status_code):
         logger.error(status_code)
 
