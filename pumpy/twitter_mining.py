@@ -34,6 +34,7 @@ class Miner(object):
 
     @logger.catch()
     def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
+        logger.info("Entering from_file definition")
         logger.info(f"Mining data from a file located at {path_input_file}")
         logger.info(f"Text column is located at index {index_ids}")
         if self.mode != "getter":
@@ -60,18 +61,20 @@ class Miner(object):
         Returns:
             Path -- Path object toward the file where the data will be stored.
         """
+        logger.info("Entering output definition")
         if self.input_file_path is None and self.mode == "getter":
-            logger.error("Please define input file before calling .to()")
+            logger.error("No input file provided when calling .to()")
 
         if output == "database":
-            logger.info("Sending data to database")
+            logger.info("Output mode set to database")
             self._output = output
             return self
         elif output == "console":
-            logger.info("Sending data to the console.")
+            logger.info("Output mode set to console")
             self._output = output
         else:
             self._output = "file"
+            logger.info("Output mode set to file")
             if self.mode == "getter":
                 output_path = Path(output)
                 self.output_file_path = self._new_file_name(
@@ -88,8 +91,9 @@ class Miner(object):
                 self.output_file_path = new_file_path
                 logger.info(f"Sending data to {new_file_path}.")
 
+    @logger.catch()
     def mine(self, api: tuple):
-        logger.info("Miner start")
+        logger.info("Entering Miner")
         if api[1] != self.mode:
             logger.error("The API mode mismatch the miner mode")
 
@@ -122,24 +126,25 @@ class Miner(object):
                 )
 
         else:
-            raise ValueError(
-                "The 'mode' argument is not valid. It should be 'getter' or 'stream'"
-            )
+            logger.error("The 'mode' argument provided to the miner is invalid.")
+            logger.error("It should be 'getter' or 'stream")
 
     def search(self, *args) -> None:
+        logger.info("Entering search arguments definition")
         if self.mode != "stream":
-            raise ValueError("Invalid 'mode'. Mode should be 'stream'.")
+            logger.error("Invalid 'mode' :: Mode should be 'stream'")
         for elt in args:
             if type(elt) == str:
                 self.keywords.append(elt)
             elif type(elt) == list and len(elt) == 4:
                 self.locations.append(elt)
             else:
-                raise ValueError("Invalid argument type")
+                logger.error("Invalid keywords or locations provided to .search()")
 
     def db_config(
         self, host="localhost", port=27017, db="twitter", collection="tweet"
     ) -> None:
+        logger.info("Entering db configuration")
         config = {"host": host, "port": port, "db": db, "collection": collection}
         self.config = config
 
@@ -192,7 +197,7 @@ class Miner(object):
     @staticmethod
     @logger.catch()
     def _listener(output_mode, file=None, config=None):
-        logger.debug(f"Output mode is set on {output_mode._output}")
+        logger.debug(f"Output mode is set on {output_mode}")
         if output_mode == "console":
             logger.info("ListenerConsole picked")
             return ListenerConsole()
@@ -220,11 +225,23 @@ def extract_ids(path):
 class ListenerConsole(StreamListener):
     def __init__(self, api=None):
         StreamListener.__init__(self, api)
+        self.index_RT: int = 0
 
     def on_status(self, status):
-        status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-        print(status)
-
+        # if status.text[:2] == "RT":
+        #     self.index_RT += 1
+        # elif status.text[:2] == "RT" and self.index_RT % 100 == 0:
+        #     status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
+        #     print(status)
+        #     print("_____________________________________________")
+        #     print(self.index_RT)
+        #     self.index_RT = 0
+        # else:
+        #     status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
+        #     print(status)
+        if status.text[:2] == "RT":
+            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
+            print(status)
 
 class ListenerFile(StreamListener):
     def __init__(self, writing_file, api=None):
@@ -241,7 +258,7 @@ class ListenerFile(StreamListener):
             self.writing_file.flush()
 
     def on_error(self, status_code):
-        logger.add(status_code)
+        logger.error(status_code)
 
     def on_disconnect(self, notice):
         self.writing_file.close()
@@ -264,3 +281,7 @@ class ListenerDB(StreamListener):
             self.index_RT = 0
         else:
             post_id = self.collection.insert_one(status.text)
+
+    @logger.catch()
+    def on_error(self, status_code):
+        logger.error(status_code)
