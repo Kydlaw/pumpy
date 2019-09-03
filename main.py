@@ -39,7 +39,7 @@ def stream2db():
     ).generate_api
     miner = Miner("stream")
     miner.to("database").db_config()
-    miner.search("gay", "islam", "trump", "raciste", "cul")
+    miner.search("fire", "flood", "tornado", "Dorian")
     miner.mine(api)
 
 
@@ -73,4 +73,4 @@ def getter():
 
 
 if __name__ == "__main__":
-    stream2raw()
+    stream2db()

@@ -17,6 +17,7 @@ LOGGER_ROOT = "./logs/"
 
 logger.add(LOGGER_ROOT + "general.log", level="DEBUG", rotation="5 MB")
 
+# TODO Passer la methode de recuperation en mode "extended" https://github.com/tweepy/tweepy/issues/974
 
 class Miner(object):
     @logger.catch()
@@ -246,9 +247,10 @@ class ListenerConsole(StreamListener):
 
 
 class ListenerFile(StreamListener):
-    def __init__(self, writing_file, api=None):
+    def __init__(self, writing_file, sample=15, api=None):
         StreamListener.__init__(self, api)
         self.writing_file: Any = writing_file
+        self.sample = sample
         self.index: int = 0
 
     @logger.catch()
@@ -276,11 +278,12 @@ class ListenerFile(StreamListener):
 
 
 class ListenerDB(StreamListener):
-    def __init__(self, config, api=None):
+    def __init__(self, config, sample=15,  api=None):
         StreamListener.__init__(self, api)
         self.client = MongoClient(config["host"], config["port"])
         self.db = self.client[config["db"]]
         self.collection = self.db[config["collection"]]
+        self.sample = sample
         self.index_RT: int = 1
 
     @logger.catch()
@@ -288,10 +291,10 @@ class ListenerDB(StreamListener):
         if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
             self.index_RT += 1
         elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
-            post_id = self.collection.insert_one(status.text)
+            post_id = self.collection.insert_one(status._json)
             self.index_RT = 1
         else:
-            post_id = self.collection.insert_one(status.text)
+            post_id = self.collection.insert_one(status._json)
 
     @logger.catch()
     def on_error(self, status_code):
