@@ -16,9 +16,11 @@ packaging==19.1
 path.py==12.0.1
 pluggy==0.12.0
 py==1.8.0
+pymongo==3.9.0
 pyparsing==2.4.2
 PySocks==1.7.0
 pytest==5.1.1
+pytest-mock==1.10.4
 requests==2.22.0
 requests-oauthlib==1.2.0
 six==1.12.0
