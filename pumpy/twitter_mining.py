@@ -10,14 +10,15 @@ from path import Path
 from pymongo import MongoClient
 from tweepy import API, Status, Stream, StreamListener
 
-from .creds import AuthApi
+from .authapi import AuthApi
 from .mongodb_lite import MongoDB
 
 LOGGER_ROOT = "./logs/"
 
 logger.add(LOGGER_ROOT + "general.log", level="DEBUG", rotation="5 MB")
 
-# TODO Passer la methode de recuperation en mode "extended" https://github.com/tweepy/tweepy/issues/974
+# TODO Use "extended" mode https://github.com/tweepy/tweepy/issues/974
+
 
 class Miner(object):
     @logger.catch()
@@ -55,7 +56,7 @@ class Miner(object):
         return self
 
     @logger.catch()
-    def to(self, output) -> Union[None, "Miner"]:
+    def to(self, output) -> Any:
         """Define where the data will be sent. It can be stdout, in a file or in a database
         
         Arguments:
@@ -278,7 +279,7 @@ class ListenerFile(StreamListener):
 
 
 class ListenerDB(StreamListener):
-    def __init__(self, config, sample=15,  api=None):
+    def __init__(self, config, sample=15, api=None):
         StreamListener.__init__(self, api)
         self.client = MongoClient(config["host"], config["port"])
         self.db = self.client[config["db"]]
