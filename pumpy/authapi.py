@@ -48,24 +48,22 @@ class AuthApi(API):
     def generate_api(self) -> API:
         if self.mode == "getter":
             if (
-                self.access_token
-                and self.access_token_secret
-                and (
-                    self.consumer_api_key == False or self.consumer_api_secret == False
-                )
+                self.consumer_api_key
+                and self.consumer_api_secret
+                and (self.access_token == False or self.access_token_secret == False)
             ):
                 logger.debug("Getter - AppAuth")
-                auth = AppAuthHandler(self.access_token, self.access_token_secret)
+                auth = AppAuthHandler(self.consumer_api_key, self.consumer_api_secret)
 
             elif (
-                self.access_token
-                and self.access_token_secret
-                and self.consumer_api_key
+                self.consumer_api_key
                 and self.consumer_api_secret
+                and self.access_token
+                and self.access_token_secret
             ):
                 logger.debug("Getter - OAuth")
-                auth = OAuthHandler(self.access_token, self.access_token_secret)
-                auth.set_access_token(self.consumer_api_key, self.consumer_api_secret)
+                auth = OAuthHandler(self.consumer_api_key, self.consumer_api_secret)
+                auth.set_access_token(self.access_token, self.access_token_secret)
 
             else:
                 raise ValueError("Invalid arguments")
@@ -74,14 +72,14 @@ class AuthApi(API):
 
         elif self.mode == "stream":
             if (
-                self.access_token
-                and self.access_token_secret
-                and self.consumer_api_key
+                self.consumer_api_key
                 and self.consumer_api_secret
+                and self.access_token
+                and self.access_token_secret
             ):
                 logger.debug("Stream - OAuth")
-                auth = OAuthHandler(self.access_token, self.access_token_secret)
-                auth.set_access_token(self.consumer_api_key, self.consumer_api_secret)
+                auth = OAuthHandler(self.consumer_api_key, self.consumer_api_secret)
+                auth.set_access_token(self.access_token, self.access_token_secret)
 
             else:
                 raise ValueError("Invalid credentials")
