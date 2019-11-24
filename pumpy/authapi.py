@@ -1,5 +1,7 @@
 #  coding: utf-8
 
+from typing import Tuple
+
 from loguru import logger
 from tweepy import API, Stream
 from tweepy.auth import AppAuthHandler, OAuthHandler
@@ -45,7 +47,7 @@ class AuthApi(API):
         self.consumer_api_secret = consumer_api_secret
 
     @property
-    def generate_api(self) -> API:
+    def _generate_api(self) -> Tuple[OAuthHandler, str]:
         if self.mode == "getter":
             if (
                 self.consumer_api_key
