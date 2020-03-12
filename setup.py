@@ -7,7 +7,7 @@ setuptools.setup(
     name="pumpy",
     version="0.0.1",
     author="Kydlaw",
-    author_email="julien.coche@protonmail.com",
+    author_email="kydlawj@pm.me",
     description="A Tweepy interface to collect tweets",
     long_description=long_description,
     long_description_content_type="text/markdown",
