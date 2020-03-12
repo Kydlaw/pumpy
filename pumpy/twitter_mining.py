@@ -1,42 +1,203 @@
+# coding: utf-8
+
 import csv
 import json
 import re
 import typing
-from typing import Any, List, Union
+from typing import Any, List, Tuple, Union
 
 import tweepy
 from loguru import logger
 from path import Path
 from pymongo import MongoClient
-from tweepy import API, Status, Stream, StreamListener
+from tweepy import API, OAuthHandler, Status, Stream, StreamListener
 
 from .authapi import AuthApi
 from .mongodb_lite import MongoDB
+from .listener import _ListenerBot, _ListenerConsole, _ListenerDB, _ListenerFile
 
 LOGGER_ROOT = "./logs/"
-
 logger.add(LOGGER_ROOT + "general.log", level="DEBUG", rotation="5 MB")
 
 # TODO Use "extended" mode https://github.com/tweepy/tweepy/issues/974
 
 
-class Miner(object):
+class MinerStream(object):
     @logger.catch()
-    def __init__(self, mode: str):
-        logger.info(f"Creating miner in mode '{mode}'")
-        if mode == "getter" or mode == "stream":
-            self.mode: str = mode
-        else:
-            logger.error("The 'mode' used was not 'stream' nor 'getter'")
+    def __init__(self):
+        # Auth management
+        self.auth_keys: List[AuthApi] = list()
+        self.current_auth_idx = 0
+        self.current_auth_handler = None
+
+        # Attributes when using a file as a source.
         self.input_file_path: Path = None
         self.output_file_path: str = str()
         self.index_ids: int = 0
+
+        #  Attributes when using the Stream API
         self.keywords: List[str] = list()
         self.locations: List[List[int]] = list()
 
     @logger.catch()
+    def to(self, output) -> Any:
+        """
+        Define where the data will be sent. It can be stdout, file file, database or
+        sent to a bot.
+        
+        Arguments:
+            output {str} -- Path toward the directory where the data will be stored.
+        
+        Returns:
+            Path -- Path object toward the file where the data will be stored.
+        """
+        if output == "database":
+            logger.info("Output mode set to database")
+            self._output = output
+            return self
+        elif output == "console":
+            logger.info("Output mode set to console")
+            self._output = output
+        elif output == "bot":
+            logger.info("Output mode set to bot")
+            self._output = output
+        else:
+            logger.error("Invalid output mode passed")
+
+    @logger.catch()
+    def mine(self):
+        logger.info("Entering Miner")
+        logger.info("Accessing an auth key in the auth_keys list")
+        auth_key: AuthApi = self.auth_keys[self.current_auth_idx]
+        self.current_auth_handler: Tuple[OAuthHandler, str] = auth_key._generate_api
+
+        if self._output == "console":
+            stream = Stream(self.current_auth_handler[0], self._listener(self._output))
+            stream.filter(track=self.keywords, locations=self.locations, is_async=True)
+            logger.info("Starting collecting tweets")
+
+        elif self._output == "file":
+            logger.info(f"Streaming tweets to {self.output_file_path}")
+            file = open(self.output_file_path, "a+")
+            stream = Stream(
+                self.current_auth_handler[0], self._listener(self._output, file=file)
+            )
+            stream.filter(track=self.keywords, locations=self.locations, is_async=True)
+
+        elif self._output == "bot":
+            logger.info("Start mining in 'stream' mode for a bot")
+            counter = 0
+            # while True:
+            logger.info("Run loop n°{counter}", counter=counter)
+            stream = Stream(
+                self.current_auth_handler[0],
+                self._listener(
+                    "bot", auth_keys=self.auth_keys, auth_idx=self.current_auth_idx
+                ),
+            )
+            try:
+                stream.filter(
+                    track=self.keywords, locations=self.locations, is_async=True
+                )
+            except tweepy.error.RateLimitError:
+                logger.info("Rate limit reached, changing account")
+                self._auth_next_account()
+                counter += 1
+
+        elif self._output == "database":
+            logger.info("Start mining in 'stream' mode into the database")
+            stream = Stream(
+                self.current_auth_handler[0],
+                self._listener(self._output, config=self.config),
+            )
+            stream.filter(track=self.keywords, locations=self.locations, is_async=True)
+
+    def search(self, *args) -> None:
+        """
+        Define the keywords or locations sent to the Twitter API to get the tweets.
+        """
+        logger.info("Search arguments definition")
+        for elt in args:
+            if type(elt) == str:
+                self.keywords.append(elt)
+            elif type(elt) == list and len(elt) == 4:
+                self.locations.append(elt)
+            else:
+                logger.error("Invalid keywords or locations provided to .search()")
+        logger.debug(f"Keywords use to search :: {self.keywords}")
+
+    def db_config(
+        self, host="localhost", port=27017, db="twitter", collection="tweet"
+    ) -> None:
+        """
+        Configuration of the Mongo database used to store the tweets retrieved.
+        
+        Keyword Arguments:
+            host {str} -- Host's name (default: {"localhost"})
+            port {int} -- Port used (default: {27017})
+            db {str} -- The name of the database (default: {"twitter"})
+            collection {str} -- The name of the collection used  (default: {"tweet"})
+        """
+        logger.info("DB configuration")
+        config = {"host": host, "port": port, "db": db, "collection": collection}
+        logger.debug("Database configuration set to: {config}", config=config)
+        self.config = config
+
+    @staticmethod
+    @logger.catch()
+    def _listener(output_mode, auth_keys=None, auth_idx=None, file=None, config=None):
+        logger.debug(f"Output mode is set on {output_mode}")
+        if output_mode == "console":
+            logger.info("ListenerConsole picked")
+            return _ListenerConsole()
+        elif output_mode == "file":
+            logger.info("ListenerFile picked")
+            return _ListenerFile(file)
+        elif output_mode == "database":
+            logger.info("ListenerDB picked")
+            logger.debug(f"Config used: {config}")
+            return _ListenerDB(config)
+        elif output_mode == "bot":
+            logger.info("ListenerBot picked")
+            return _ListenerBot(auth_keys, auth_idx)
+        else:
+            logger.error("Invalid output mode passed.")
+            raise ValueError("Invalid output mode passed.")
+
+    def _auth_next_account(self):
+        """
+        Internal function that shouldn't be called outside of mine, it tries to
+        grab the next account and if it reaches the end, it wraps back around to the
+        first set of keys.
+
+        :return: the new api, but it also sets self.api so unnecessary
+        """
+        self.current_auth_idx = self.current_auth_idx + 1
+        if len(self.auth_keys) <= self.current_auth_idx:
+            self.current_auth_idx = 0
+
+        auth_key: AuthApi = self.auth_keys[self.current_auth_idx]
+        self.current_auth_handler: Tuple[OAuthHandler, str] = auth_key._generate_api
+
+
+class MinerFromPast(object):
+    @logger.catch()
+    def __init__(self):
+        logger.info("Creating miner")
+        # Auth management
+        self.auth_keys: List[AuthApi] = list()
+        self.current_auth_idx = 0
+        self.current_auth_handler = None
+
+        # Attributes when using a file as a source.
+        self.input_file_path: Path = None
+        self.output_file_path: str = str()
+        self.index_ids: int = 0
+
+    @logger.catch()
     def from_file(self, path_input_file: str, index_ids: int) -> "Miner":
-        """In 'getter' mode, define where are located the data that the user user wants
+        """
+        In 'getter' mode, define where are located the data that the user user wants
         to retrieve.
         
         Returns:
@@ -45,18 +206,16 @@ class Miner(object):
         logger.info("Entering from_file definition")
         logger.info(f"Mining data from a file located at {path_input_file}")
         logger.info(f"Text column is located at index {index_ids}")
-        if self.mode != "getter":
-            logger.error("from_file() method is only available in 'getter' mode")
         try:
             path: Path = Path(path_input_file)
-        except FileNotFoundError as err:
+        except FileNotFoundError:
             logger.error("Wrong file or file path")
         self.input_file_path = path
         self.index_ids = index_ids
         return self
 
     @logger.catch()
-    def to(self, output) -> Any:
+    def to(self, output):
         """Define where the data will be sent. It can be stdout, in a file or in a database
         
         Arguments:
@@ -66,7 +225,7 @@ class Miner(object):
             Path -- Path object toward the file where the data will be stored.
         """
         logger.info("Entering output definition")
-        if self.input_file_path is None and self.mode == "getter":
+        if self.input_file_path is None:
             logger.error("No input file provided when calling .to()")
 
         if output == "database":
@@ -76,55 +235,88 @@ class Miner(object):
         elif output == "console":
             logger.info("Output mode set to console")
             self._output = output
-        else:
-            self._output = "file"
+        elif output == "bot":
+            logger.info("Output mode set to bot")
+            self._output = output
+        elif output == "file":
             logger.info("Output mode set to file")
-            if self.mode == "getter":
-                output_path = Path(output)
-                self.output_file_path = self._new_file_name(
-                    self, output_path, extension=".json"
-                )
-                logger.info(f"Sending data to {self.output_file_path}.")
-            else:
-                # TODO: Add test
-                output_path = Path(output)
-                file_index = 0
-                while (output_path + f"stream{file_index}.txt").exists():
-                    file_index += 1
-                new_file_path = output_path + f"stream{file_index}.txt"
-                self.output_file_path = new_file_path
-                logger.info(f"Sending data to {new_file_path}.")
+            self._output = "file"
+            # TODO: Add test
+            output_path = Path(output)
+            file_index = 0
+            while (output_path + f"stream{file_index}.txt").exists():
+                file_index += 1
+            new_file_path = output_path + f"stream{file_index}.txt"
+            self.output_file_path = new_file_path
+            logger.info(f"Sending data to {new_file_path}.")
+        else:
+            logger.error("Invalid output mode passed")
 
     @logger.catch()
-    def mine(self, api: tuple):
+    def mine(self):
         logger.info("Entering Miner")
-        if api[1] != self.mode:
-            logger.error("The API mode mismatch the miner mode")
+        logger.info("Accessing an auth key in the auth_keys list")
+        auth_key: AuthApi = self.auth_keys[self.current_auth_idx]
+        if auth_key.mode != self.mode:
+            logger.error("The key mode mismatch the miner mode")
+        else:
+            logger.info("Generating the API")
+            self.current_auth_handler: Tuple[OAuthHandler, str] = auth_key._generate_api
 
         if self.mode == "getter":
-            self._file_ids_to_tweets_in_json(self, api, self.input_file_path)
+            self._file_ids_to_tweets_in_json(
+                self, self.current_auth_handler, self.input_file_path
+            )
 
         elif self.mode == "stream":
             if self._output == "console":
                 logger.debug(f"The output mode is set to '{self._output}'")
-                stream = Stream(api[0], self._listener(self._output))
+                logger.debug(self.current_auth_handler)
+                stream = Stream(
+                    self.current_auth_handler[0], self._listener(self._output)
+                )
                 stream.filter(
                     track=self.keywords, locations=self.locations, is_async=True
                 )
+                logger.info("Starting collecting tweets")
             elif self._output == "file":
                 logger.info(
                     "Start mining in 'stream' mode, into {file}",
                     file=self.output_file_path,
                 )
                 file = open(self.output_file_path, "a+")
-                stream = Stream(api[0], self._listener(self._output, file=file))
+                stream = Stream(
+                    self.current_auth_handler[0],
+                    self._listener(self._output, file=file),
+                )
                 stream.filter(
                     track=self.keywords, locations=self.locations, is_async=True
                 )
-            elif self._output == "database":
-                logger.info("Start mining in 'stream' mode into the database.")
+            elif self._output == "bot":
+                logger.info("Start mining in 'stream' mode for a bot")
+                counter = 0
+                # while True:
+                logger.info("Run loop n°{counter}", counter=counter)
                 stream = Stream(
-                    api[0], self._listener(self._output, config=self.config)
+                    self.current_auth_handler[0],
+                    self._listener(
+                        "bot", auth_keys=self.auth_keys, auth_idx=self.current_auth_idx
+                    ),
+                )
+                try:
+                    stream.filter(
+                        track=self.keywords, locations=self.locations, is_async=True
+                    )
+                except tweepy.error.RateLimitError:
+                    logger.info("Rate limit reached, changing account")
+                    self._auth_next_account()
+                    counter += 1
+
+            elif self._output == "database":
+                logger.info("Start mining in 'stream' mode into the database")
+                stream = Stream(
+                    self.current_auth_handler[0],
+                    self._listener(self._output, config=self.config),
                 )
                 stream.filter(
                     track=self.keywords, locations=self.locations, is_async=True
@@ -145,6 +337,7 @@ class Miner(object):
                 self.locations.append(elt)
             else:
                 logger.error("Invalid keywords or locations provided to .search()")
+        logger.debug("Keywords use to search :: {keywords}", keywords=self.keywords)
 
     def db_config(
         self, host="localhost", port=27017, db="twitter", collection="tweet"
@@ -184,6 +377,21 @@ class Miner(object):
 
         self._write_tweets_through_ids(api, ids, self.output_file_path)
 
+    def _auth_next_account(self):
+        """
+        Internal function that shouldn't be called outside of mine, it tries to
+        grab the next account and if it reaches the end, it wraps back around to the
+        first set of keys.
+
+        :return: the new api, but it also sets self.api so unnecessary
+        """
+        self.current_auth_idx = self.current_auth_idx + 1
+        if len(self.auth_keys) <= self.current_auth_idx:
+            self.current_auth_idx = 0
+
+        auth_key: AuthApi = self.auth_keys[self.current_auth_idx]
+        self.current_auth_handler: Tuple[OAuthHandler, str] = auth_key._generate_api
+
     @staticmethod
     def _new_file_name(self, dir_name: str, extension: str) -> Path:
         """Provide the path of a new file using the parent dir name.
@@ -200,103 +408,11 @@ class Miner(object):
         output_path = dir_name / new_name + extension
         return output_path
 
-    @staticmethod
-    @logger.catch()
-    def _listener(output_mode, file=None, config=None):
-        logger.debug(f"Output mode is set on {output_mode}")
-        if output_mode == "console":
-            logger.info("ListenerConsole picked")
-            return ListenerConsole()
-        elif output_mode == "file":
-            logger.info("ListenerFile picked")
-            return ListenerFile(file)
-        elif output_mode == "database":
-            logger.info("ListenerDB picked")
-            logger.info("Config used: {config}", config=config)
-            return ListenerDB(config)
-        else:
-            raise ValueError("Invalid output mode passed.")
-
-
-def extract_ids(path):
-    tweet_ids = list()
-    with open(path, "r") as file_to_extract_ids:
-        for line in file_to_extract_ids:
-            tweet_id = re.search(r"\d{18}", line)
-            if tweet_id:
-                tweet_ids.append(tweet_id.group(0))
-    return tweet_ids
-
-
-class ListenerConsole(StreamListener):
-    def __init__(self, sample=15, api=None):
-        StreamListener.__init__(self, api)
-        self.index_RT: int = 1
-        self.sample: int = sample
-
-    @logger.catch()
-    def on_status(self, status):
-        if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
-            self.index_RT += 1
-        elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
-            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-            print(status)
-            self.index_RT = 1
-        else:
-            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-            print(status)
-
-
-class ListenerFile(StreamListener):
-    def __init__(self, writing_file, sample=15, api=None):
-        StreamListener.__init__(self, api)
-        self.writing_file: Any = writing_file
-        self.sample = sample
-        self.index: int = 0
-
-    @logger.catch()
-    def on_status(self, status):
-        if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
-            self.index_RT += 1
-        elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
-            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-            self.writing_file.write(status + "\n")
-            self.index_RT = 1
-        else:
-            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-            self.writing_file.write(status + "\n")
-
-        self.index += 1
-        if self.index % 10 == 0:
-            self.writing_file.flush()
-
-    @logger.catch()
-    def on_error(self, status_code):
-        logger.error(status_code)
-
-    def on_disconnect(self, notice):
-        self.writing_file.close()
-
-
-class ListenerDB(StreamListener):
-    def __init__(self, config, sample=15, api=None):
-        StreamListener.__init__(self, api)
-        self.client = MongoClient(config["host"], config["port"])
-        self.db = self.client[config["db"]]
-        self.collection = self.db[config["collection"]]
-        self.sample = sample
-        self.index_RT: int = 1
-
-    @logger.catch()
-    def on_status(self, status):
-        if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
-            self.index_RT += 1
-        elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
-            post_id = self.collection.insert_one(status._json)
-            self.index_RT = 1
-        else:
-            post_id = self.collection.insert_one(status._json)
-
-    @logger.catch()
-    def on_error(self, status_code):
-        logger.error(status_code)
+    def extract_ids(self, path):
+        tweet_ids = list()
+        with open(path, "r") as file_to_extract_ids:
+            for line in file_to_extract_ids:
+                tweet_id = re.search(r"\d{18}", line)
+                if tweet_id:
+                    tweet_ids.append(tweet_id.group(0))
+        return tweet_ids
