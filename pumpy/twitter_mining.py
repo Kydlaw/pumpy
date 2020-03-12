@@ -1,7 +1,6 @@
 import csv
 import json
 import re
-import typing
 from typing import Any, List, Union
 
 import tweepy
