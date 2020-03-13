@@ -165,7 +165,7 @@ class _ListenerDB(StreamListener):
         index_RT {int} -- The message send by the bot to a user
     """
 
-    def __init__(self, config, sample=15, api=None):
+    def __init__(self, api, config, sample=15):
         StreamListener.__init__(self, api)
         self.client: MongoClient = MongoClient(config["host"], config["port"])
         self.db: Database = self.client[config["db"]]
