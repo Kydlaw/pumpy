@@ -1,10 +1,10 @@
 #  coding: utf-8
 
 from loguru import logger
-import tweepy
+from tweepy import API, OAuthHandler
 
 
-class AuthApi(tweepy.API):
+class AuthApi(API):
     """
     Generate a Tweepy AuthHandler object that will be used later to generate an API.
 
@@ -29,7 +29,7 @@ class AuthApi(tweepy.API):
         self.consumer_api_secret = consumer_api_secret
 
     @property
-    def generate_api(self) -> tweepy.OAuthHandler:
+    def generate_api(self) -> OAuthHandler:
         """
         Use the credentials passed during initialization to generate an OAuthHandler.
         It will then be used later to generate an API object to request Twitter's API.
@@ -47,7 +47,7 @@ class AuthApi(tweepy.API):
             and self.access_token_secret
         ):
             logger.debug("Creation OAuthHandler")
-            auth = tweepy.OAuthHandler(self.consumer_api_key, self.consumer_api_secret)
+            auth = OAuthHandler(self.consumer_api_key, self.consumer_api_secret)
             auth.set_access_token(self.access_token, self.access_token_secret)
         else:
             raise ValueError("Missing credentials")
