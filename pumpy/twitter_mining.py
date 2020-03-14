@@ -3,7 +3,7 @@
 import csv
 import json
 import re
-from typing import Any, List
+from typing import Any, List, Union
 
 import tweepy
 from loguru import logger
@@ -11,7 +11,7 @@ from pathlib import Path
 from tweepy import API, OAuthHandler, Status, Stream, StreamListener
 
 from .authapi import AuthApi
-from .listener import _ListenerBot, _ListenerConsole, _ListenerDB, _ListenerFile
+from .listener import ListenerBot, ListenerConsole, ListenerDB
 
 LOGGER_ROOT = "./logs/"
 logger.add(LOGGER_ROOT + "general.log", level="DEBUG", rotation="5 MB")
@@ -29,7 +29,7 @@ class MinerStream(object):
         ValueError: [description]
     
     Returns:
-        None
+        Run a Tweepy Stream object
     """
 
     @logger.catch()
@@ -49,16 +49,13 @@ class MinerStream(object):
         self.locations: List[List[int]] = list()
 
     @logger.catch()
-    def to(self, output) -> Any:
+    def to(self, output):
         """
         Define where the data will be sent. It can be stdout, file file, database or
         sent to a bot.
         
         Arguments:
-            output {str} -- Path toward the directory where the data will be stored.
-        
-        Returns:
-            Path -- Path object toward the file where the data will be stored.
+            output {str} -- Where the data will be directed.
         """
         if output == "database":
             logger.info("Output mode set to database")
@@ -79,7 +76,6 @@ class MinerStream(object):
         Method to collect tweets.
         If a rate limit error is raised, switch the account used and restart the collection
         """
-        # breakpoint()
         if not (self.keywords or self.locations):
             raise ValueError("No keywords or location provided")
 
@@ -160,13 +156,13 @@ class MinerStream(object):
         logger.debug(f"Output mode is set on {output_mode}")
         if output_mode == "console":
             logger.info("ListenerConsole picked")
-            return _ListenerConsole()
+            return ListenerConsole()
         elif output_mode == "file":
             logger.info("ListenerFile picked")
-            return _ListenerFile(file)
+            return ListenerFile(file)
         elif output_mode == "bot":
             logger.info("ListenerBot picked")
-            return _ListenerBot(auth_keys, auth_idx)
+            return ListenerBot(auth_keys, auth_idx)
         else:
             logger.error("Invalid output mode passed.")
             raise ValueError("Invalid output mode passed.")

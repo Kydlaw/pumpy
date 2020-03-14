@@ -25,8 +25,7 @@ def main():
         )
     )
 
-    miner.to("database")
-    miner.db_config(db="tweets", collection="covid")
+    miner.to("database").db_config(db="tweets", collection="covid")
     miner.search("covid", "corona", "YOLO", "Trump")
     miner.mine()
 

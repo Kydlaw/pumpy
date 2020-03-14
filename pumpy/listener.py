@@ -8,7 +8,7 @@ from pymongo import MongoClient
 from tweepy import API, OAuthHandler, StreamListener
 
 
-class _ListenerBot(StreamListener):
+class ListenerBot(StreamListener):
     """A StreamListener to create bots. It has the following methods:
         - on_status() -- Action performed when a tweet matching the keyword is found
         - _send_message() -- Method called to send a message to a specified user
@@ -81,7 +81,7 @@ class _ListenerBot(StreamListener):
             # try to switch accounts
             self._auth_next_account()
 
-    def _auth_next_account(self) -> tweepy.API:
+    def _auth_next_account(self) -> API:
         """
         Internal function that shouldn't be called outside of send_messages, it tries to
         grab the next account and if it reaches the end, it wraps back around to the
@@ -96,16 +96,16 @@ class _ListenerBot(StreamListener):
         self.api: OAuthHandler = self.auth_keys[self.auth_idx].generate_api[0]
 
 
-class _ListenerConsole(StreamListener):
-    def __init__(self, sample=15, api=None, to_console=False):
+class ListenerConsole(StreamListener):
+    def __init__(self, api, sample=15, test=False):
         StreamListener.__init__(self, api)
         self.index_RT: int = 1
         self.sample: int = sample
-        self.to_console: bool = to_console
+        self.test: bool = test
 
     @logger.catch()
     def on_status(self, status) -> None:
-        if self.to_console:
+        if self.test:
             print(status.user.screen_name)
         else:
             if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
@@ -150,7 +150,7 @@ class _ListenerFile(StreamListener):
         self.writing_file.close()
 
 
-class _ListenerDB(StreamListener):
+class ListenerDB(StreamListener):
     """A StreamListener to store tweets in a DB. It has the following methods:
     - on_status() -- Action performed when a tweet matching the keyword is found
     - on_error() -- Method called to send a message to a specified user
