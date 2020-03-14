@@ -25,11 +25,9 @@ class _ListenerBot(StreamListener):
 
     def __init__(self, auth_keys, auth_idx):
         self.DEBUG: bool = True
-        self.auth_keys: List[str] = auth_keys
+        self.auth_keys: List[AuthApi] = auth_keys
         self.auth_idx: int = auth_idx
-        self.api: Tuple[OAuthHandler, str] = API(
-            self.auth_keys[self.auth_idx]._generate_api[0]
-        )
+        self.api: API = API(self.auth_keys[self.auth_idx].generate_api[0])
 
         self._message: str = (
             "Hello @{}, we are a group of researchers at Penn State IST, we are researching ways to "
@@ -41,12 +39,12 @@ class _ListenerBot(StreamListener):
     def on_status(self, status):
         user: str = status.user.screen_name
         logger.debug("Tweet found!")
-        self._send_message("Julien")
+        self._send_message(user[0])
 
     @logger.catch()
-    def _send_message(self, screen_name: List[str]) -> None:
+    def _send_message(self, screen_name: str) -> None:
         """
-        Send a direct message to the user and if
+        Send a direct message to the user
         :param screen_names: list of strings for the screen names that you want to sent a message to
         :return: None
         """
@@ -95,7 +93,7 @@ class _ListenerBot(StreamListener):
         if len(self.auth_keys) <= self.auth_idx:
             self.auth_idx = 0
 
-        self.api = self.auth_keys[self.auth_idx]._generate_api[0]
+        self.api: OAuthHandler = self.auth_keys[self.auth_idx].generate_api[0]
 
 
 class _ListenerConsole(StreamListener):
