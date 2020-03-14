@@ -1,2 +1,2 @@
-from .twitter_mining import Miner
+from .twitter_mining import MinerStream, MinerFromPast
 from .authapi import AuthApi
