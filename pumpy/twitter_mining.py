@@ -7,7 +7,7 @@ from typing import Any, List
 
 import tweepy
 from loguru import logger
-from path import Path
+from pathlib import Path
 from tweepy import API, OAuthHandler, Status, Stream, StreamListener
 
 from .authapi import AuthApi
@@ -393,28 +393,3 @@ class MinerFromPast(object):
 
         auth_key: AuthApi = self.auth_keys[self.current_auth_idx]
         self.current_auth_handler: Tuple[OAuthHandler, str] = auth_key._generate_api
-
-    @staticmethod
-    def _new_file_name(self, dir_name: str, extension: str) -> Path:
-        """Provide the path of a new file using the parent dir name.
-        
-        Arguments:
-            dir_name {Path} -- The path of the targeted dir.
-            extension {str} -- The extension of the new file.
-        
-        Returns:
-            output_path {Path} -- The new path generated.
-        """
-        dir_path = Path(dir_name)
-        new_name = Path.joinpath(*Path(self.input_file_path).splitall()[-2:-1])
-        output_path = dir_name / new_name + extension
-        return output_path
-
-    def extract_ids(self, path):
-        tweet_ids = list()
-        with open(path, "r") as file_to_extract_ids:
-            for line in file_to_extract_ids:
-                tweet_id = re.search(r"\d{18}", line)
-                if tweet_id:
-                    tweet_ids.append(tweet_id.group(0))
-        return tweet_ids
