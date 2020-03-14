@@ -79,9 +79,6 @@ class MinerStream(object):
         api = self.current_auth_handler
 
         if self._output == "console":
-            stream = Stream(self.current_auth_handler[0], self._listener(self._output))
-            stream.filter(track=self.keywords, locations=self.locations, is_async=True)
-            logger.info("Starting collecting tweets")
             self._streamer_console(self.current_auth_handler)
 
         elif self._output == "bot":
@@ -158,10 +155,25 @@ class MinerStream(object):
     @logger.catch()
     def _streamer_db(self, config, auth_handler):
         logger.debug("Generating the API")
-        api: tweepy.API = tweepy.API(auth_handler)
-        stream = Stream(auth_handler, _ListenerDB(api, config))
-        stream.filter(track=self.keywords, is_async=True)
-        logger.debug("...Stream started...")
+        api: API = tweepy.API(auth_handler)
+        stream = Stream(auth_handler, ListenerDB(api, config))
+        self._filter(stream)
+
+    @logger.catch()
+    def _streamer_console(self, auth_handler):
+        logger.debug("Generating the API")
+        api: API = tweepy.API(auth_handler)
+        stream = Stream(self.current_auth_handler[0], ListenerConsole(api))
+        self._filter(stream)
+
+    def _filter(self, stream: Stream):
+        if self.keywords:
+            stream.filter(track=self.keywords, is_async=True)
+        elif self.locations:
+            stream.filter(locations=self.locations, is_async=True)
+        else:
+            logger.debug("Failed to start stream.")
+        logger.info("...Stream started...")
 
     def _auth_next_account(self):
         """
