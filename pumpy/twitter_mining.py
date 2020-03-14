@@ -39,11 +39,6 @@ class MinerStream(object):
         self.current_auth_idx: int = 0
         self.current_auth_handler: OAuthHandler = None
 
-        # Attributes when using a file as a source.
-        self.input_file_path: Path = None
-        self.output_file_path: str = str()
-        self.index_ids: int = 0
-
         #  Attributes related to the Stream API
         self.keywords: List[str] = list()
         self.locations: List[List[int]] = list()
@@ -87,14 +82,7 @@ class MinerStream(object):
             stream = Stream(self.current_auth_handler[0], self._listener(self._output))
             stream.filter(track=self.keywords, locations=self.locations, is_async=True)
             logger.info("Starting collecting tweets")
-
-        elif self._output == "file":
-            logger.info(f"Streaming tweets to {self.output_file_path}")
-            file = open(self.output_file_path, "a+")
-            stream = Stream(
-                self.current_auth_handler[0], self._listener(self._output, file=file)
-            )
-            stream.filter(track=self.keywords, locations=self.locations, is_async=True)
+            self._streamer_console(self.current_auth_handler)
 
         elif self._output == "bot":
             logger.info("Start mining in 'stream' mode for a bot")
@@ -249,17 +237,6 @@ class MinerFromPast(object):
         elif output == "bot":
             logger.info("Output mode set to bot")
             self._output = output
-        elif output == "file":
-            logger.info("Output mode set to file")
-            self._output = "file"
-            # TODO: Add test
-            output_path = Path(output)
-            file_index = 0
-            while (output_path + f"stream{file_index}.txt").exists():
-                file_index += 1
-            new_file_path = output_path + f"stream{file_index}.txt"
-            self.output_file_path = new_file_path
-            logger.info(f"Sending data to {new_file_path}.")
         else:
             logger.error("Invalid output mode passed")
 
@@ -290,38 +267,6 @@ class MinerFromPast(object):
                     track=self.keywords, locations=self.locations, is_async=True
                 )
                 logger.info("Starting collecting tweets")
-            elif self._output == "file":
-                logger.info(
-                    "Start mining in 'stream' mode, into {file}",
-                    file=self.output_file_path,
-                )
-                file = open(self.output_file_path, "a+")
-                stream = Stream(
-                    self.current_auth_handler[0],
-                    self._listener(self._output, file=file),
-                )
-                stream.filter(
-                    track=self.keywords, locations=self.locations, is_async=True
-                )
-            elif self._output == "bot":
-                logger.info("Start mining in 'stream' mode for a bot")
-                counter = 0
-                # while True:
-                logger.info("Run loop n°{counter}", counter=counter)
-                stream = Stream(
-                    self.current_auth_handler[0],
-                    self._listener(
-                        "bot", auth_keys=self.auth_keys, auth_idx=self.current_auth_idx
-                    ),
-                )
-                try:
-                    stream.filter(
-                        track=self.keywords, locations=self.locations, is_async=True
-                    )
-                except tweepy.error.RateLimitError:
-                    logger.info("Rate limit reached, changing account")
-                    self._auth_next_account()
-                    counter += 1
 
             elif self._output == "database":
                 logger.info("Start mining in 'stream' mode into the database")

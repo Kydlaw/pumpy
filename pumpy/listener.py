@@ -119,37 +119,6 @@ class ListenerConsole(StreamListener):
                 print(status)
 
 
-class _ListenerFile(StreamListener):
-    def __init__(self, writing_file, sample=15, api=None):
-        StreamListener.__init__(self, api)
-        self.writing_file: Any = writing_file
-        self.sample = sample
-        self.index_RT: int = 0
-
-    @logger.catch()
-    def on_status(self, status):
-        if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
-            self.index_RT += 1
-        elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
-            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-            self.writing_file.write(status + "\n")
-            self.index_RT = 1
-        else:
-            status = status.id_str + " :: " + status.text.replace("\n", " \\n ")
-            self.writing_file.write(status + "\n")
-
-        self.index_RT += 1
-        if self.index_RT % 10 == 0:
-            self.writing_file.flush()
-
-    @logger.catch()
-    def on_error(self, status_code):
-        logger.error(status_code)
-
-    def on_disconnect(self, notice):
-        self.writing_file.close()
-
-
 class ListenerDB(StreamListener):
     """A StreamListener to store tweets in a DB. It has the following methods:
     - on_status() -- Action performed when a tweet matching the keyword is found
