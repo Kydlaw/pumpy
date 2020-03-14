@@ -190,6 +190,7 @@ class _ListenerDB(StreamListener):
             post_id = self.collection.insert_one(status._json)
             self.index_RT = 1
         else:
+            logger.debug("Tweet found!")
             post_id = self.collection.insert_one(status._json)
 
     @logger.catch()
