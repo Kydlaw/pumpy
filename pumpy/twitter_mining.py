@@ -82,9 +82,8 @@ class MinerStream(object):
             self._streamer_console(self.current_auth_handler)
 
         elif self._output == "bot":
-            logger.info("Start mining in 'stream' mode for a bot")
+            logger.info("Start running a bot to send message to specific users")
             counter = 0
-            # while True:
             logger.info("Run loop n°{counter}", counter=counter)
             stream = Stream(
                 self.current_auth_handler[0],

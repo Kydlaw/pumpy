@@ -92,7 +92,6 @@ class ListenerBot(StreamListener):
         self.auth_idx = self.auth_idx + 1
         if len(self.auth_keys) <= self.auth_idx:
             self.auth_idx = 0
-
         self.api: OAuthHandler = self.auth_keys[self.auth_idx].generate_api[0]
 
 
