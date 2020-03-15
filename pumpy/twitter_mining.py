@@ -85,16 +85,10 @@ class MinerStream(object):
             logger.info("Start running a bot to send message to specific users")
             counter = 0
             logger.info("Run loop n°{counter}", counter=counter)
-            stream = Stream(
-                self.current_auth_handler[0],
-                self._listener(
-                    "bot", auth_keys=self.auth_keys, auth_idx=self.current_auth_idx
-                ),
-            )
+            api: API = tweepy.API(current_auth_handler[0])
+            stream = Stream(self.current_auth_handler[0], ListenerBot(api))
             try:
-                stream.filter(
-                    track=self.keywords, locations=self.locations, is_async=True
-                )
+                self._filter(stream)
             except tweepy.error.RateLimitError:
                 logger.info("Rate limit reached, changing account")
                 self._auth_next_account()
@@ -141,15 +135,16 @@ class MinerStream(object):
         if output_mode == "console":
             logger.info("ListenerConsole picked")
             return ListenerConsole()
-        elif output_mode == "file":
-            logger.info("ListenerFile picked")
-            return ListenerFile(file)
         elif output_mode == "bot":
             logger.info("ListenerBot picked")
             return ListenerBot(auth_keys, auth_idx)
         else:
             logger.error("Invalid output mode passed.")
             raise ValueError("Invalid output mode passed.")
+
+    @logger.catch()
+    def _streamer_bot(self, auth_handler):
+        pass
 
     @logger.catch()
     def _streamer_db(self, config, auth_handler):
