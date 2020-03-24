@@ -128,20 +128,6 @@ class MinerStream(object):
         logger.debug("Database configuration set to: {config}", config=config)
         self.config = config
 
-    @staticmethod
-    @logger.catch()
-    def _listener(output_mode, auth_keys=None, auth_idx=None, file=None, config=None):
-        logger.debug(f"Output mode is set on {output_mode}")
-        if output_mode == "console":
-            logger.info("ListenerConsole picked")
-            return ListenerConsole()
-        elif output_mode == "bot":
-            logger.info("ListenerBot picked")
-            return ListenerBot(auth_keys, auth_idx)
-        else:
-            logger.error("Invalid output mode passed.")
-            raise ValueError("Invalid output mode passed.")
-
     @logger.catch()
     def _streamer_bot(self, auth_handler):
         pass
