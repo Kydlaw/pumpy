@@ -138,6 +138,7 @@ class ListenerDB(StreamListener):
         self.collection: Collection = self.db[config["collection"]]
         self.sample: int = sample
         self.index_RT: int = 1
+        self.index_info: int = 0
 
     @logger.catch()
     def on_status(self, status):
@@ -156,8 +157,10 @@ class ListenerDB(StreamListener):
             post_id = self.collection.insert_one(status._json)
             self.index_RT = 1
         else:
-            logger.debug("Tweet found!")
+            if self.index_info == 100:
+                logger.info("Bip!")
             post_id = self.collection.insert_one(status._json)
+            self.index_info += 1
 
     @logger.catch()
     def on_error(self, status_code):
