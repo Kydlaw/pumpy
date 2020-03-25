@@ -10,6 +10,8 @@ from loguru import logger
 from pathlib import Path
 from tweepy import API, OAuthHandler, Status, Stream, StreamListener
 
+from urllib3.exceptions import ReadTimeoutError
+
 from .authapi import AuthApi
 from .listener import ListenerBot, ListenerConsole, ListenerDB
 
@@ -93,6 +95,9 @@ class MinerStream(object):
                 logger.info("Rate limit reached, changing account")
                 self._auth_next_account()
                 counter += 1
+            except ReadTimeoutError:
+                logger.info("Raised a ReadTimeoutError :: Restart the service")
+                self.mine()
 
         elif self._output == "database":
             self._streamer_db(self.config, self.current_auth_handler)
