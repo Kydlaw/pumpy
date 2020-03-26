@@ -3,7 +3,7 @@
 import csv
 import json
 import re
-from typing import Any, List, Union
+from typing import Any, List, Union, Tuple
 
 import tweepy
 from loguru import logger
@@ -100,7 +100,10 @@ class MinerStream(object):
                 self.mine()
 
         elif self._output == "database":
-            self._streamer_db(self.config, self.current_auth_handler)
+            try:
+                self._streamer_db(self.config, self.current_auth_handler)
+            except ReadTimeoutError:
+                self.mine()
 
     def search(self, *args) -> None:
         """
