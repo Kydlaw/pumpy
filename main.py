@@ -28,7 +28,38 @@ def main():
     miner.to("database").db_config(db="tweets", collection="covid2")
     # miner.search("hand sanitizer", "out of", "not flu", "COVID19", "test kit")
     # miner.search("hand sanitizer", "out of", "not flu", "COVID19", "test kit", "stay home", "quarantine", "lockdown") fin 19:03
-    miner.search("hand sanitizer", "out of", "not flu", "COVID19", "test kit", "stay home", "quarantine", "lockdown", "PSH", "cough", "fever", "breath", "chest", "infected", "contaminated")
+    miner.search(
+        "hand sanitizer",
+        "out of",
+        "not flu",
+        "COVID19",
+        "test kit",
+        "stay home",
+        "quarantine",
+        "lockdown",
+        "PSH",
+        "cough",
+        "fever",
+        "breath",
+        "chest",
+        "infected",
+        "contaminated",
+    )
+    miner.search(
+        "test kit",
+        "stay home",
+        "quarantine",
+        "lockdown",
+        "cough",
+        "fever",
+        "breath",
+        "chest",
+        "infected",
+        "contaminated",
+        "pandemic",
+        "youngboy",
+    )
+
     miner.mine()
 
 

@@ -159,6 +159,7 @@ class ListenerDB(StreamListener):
         else:
             if self.index_info == 100:
                 logger.info("Bip!")
+                self.index_info = 0
             post_id = self.collection.insert_one(status._json)
             self.index_info += 1
 

@@ -10,7 +10,8 @@ from loguru import logger
 from pathlib import Path
 from tweepy import API, OAuthHandler, Status, Stream, StreamListener
 
-from urllib3.exceptions import ReadTimeoutError
+from urllib3.exceptions import ReadTimeoutError, ProtocolError
+from http.client import IncompleteRead
 
 from .authapi import AuthApi
 from .listener import ListenerBot, ListenerConsole, ListenerDB
@@ -96,13 +97,20 @@ class MinerStream(object):
                 self._auth_next_account()
                 counter += 1
             except ReadTimeoutError:
-                logger.info("Raised a ReadTimeoutError :: Restart the service")
+                logger.error("Raised a ReadTimeoutError :: Restart the service")
                 self.mine()
 
         elif self._output == "database":
             try:
                 self._streamer_db(self.config, self.current_auth_handler)
             except ReadTimeoutError:
+                logger.error("Raised a ReadTimeoutError :: Restart the service")
+                self.mine()
+            except ProtocolError:
+                logger.error("Raised a ProtocolError :: Restart the service")
+                self.mine()
+            except IncompleteRead:
+                logger.error("Raised an IncompleteRead error :: Restart the service")
                 self.mine()
 
     def search(self, *args) -> None:
@@ -144,8 +152,12 @@ class MinerStream(object):
     def _streamer_db(self, config, auth_handler):
         logger.debug("Generating the API")
         api: API = tweepy.API(auth_handler)
-        stream = Stream(auth_handler, ListenerDB(api, config))
-        self._filter(stream)
+        try:
+            stream = Stream(auth_handler, ListenerDB(api, config))
+            self._filter(stream)
+        except IncompleteRead:
+            logger.error("Raised an IncompleteRead error :: Restart the service")
+            self.mine()
 
     @logger.catch()
     def _streamer_console(self, auth_handler):
