@@ -1,6 +1,8 @@
 # coding: utf-8
 
 from typing import Any, List, Tuple
+from queue import Queue
+from threading import Thread
 
 import tweepy
 from loguru import logger
@@ -131,14 +133,19 @@ class ListenerDB(StreamListener):
         index_RT {int} -- The message send by the bot to a user
     """
 
-    def __init__(self, api, config, sample=15):
+    def __init__(self, api, config, sample=15, q=Queue()):
         StreamListener.__init__(self, api)
         self.client: MongoClient = MongoClient(config["host"], config["port"])
         self.db: Database = self.client[config["db"]]
         self.collection: Collection = self.db[config["collection"]]
         self.sample: int = sample
+        self.q = q
         self.index_RT: int = 1
         self.index_info: int = 0
+        for i in range(4):
+            t = Thread(target=self._storing)
+            t.daemon = True
+            t.start()
 
     @logger.catch()
     def on_status(self, status):
@@ -154,13 +161,13 @@ class ListenerDB(StreamListener):
         if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
             self.index_RT += 1
         elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
-            post_id = self.collection.insert_one(status._json)
+            self.q.put(status._json)
             self.index_RT = 1
         else:
             if self.index_info == 100:
-                logger.info("Bip!")
+                logger.info("Bip! :: Queue size = {qsize}", qsize=self.q.qsize())
                 self.index_info = 0
-            post_id = self.collection.insert_one(status._json)
+            self.q.put(status._json)
             self.index_info += 1
 
     @logger.catch()
@@ -175,3 +182,8 @@ class ListenerDB(StreamListener):
     @logger.catch()
     def on_timeout(self):
         self.client.close()
+
+    @logger.catch()
+    def _storing(self):
+        while True:
+            post_id = self.collection.insert_one(self.q.get())

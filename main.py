@@ -44,20 +44,7 @@ def main():
         "chest",
         "infected",
         "contaminated",
-    )
-    miner.search(
-        "test kit",
-        "stay home",
-        "quarantine",
-        "lockdown",
-        "cough",
-        "fever",
-        "breath",
-        "chest",
-        "infected",
-        "contaminated",
         "pandemic",
-        "youngboy",
     )
 
     miner.mine()
