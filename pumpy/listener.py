@@ -158,17 +158,12 @@ class ListenerDB(StreamListener):
             status -- The tweet received
         """
 
-        if status.text[:2] == "RT" and self.index_RT % self.sample != 0:
-            self.index_RT += 1
-        elif status.text[:2] == "RT" and self.index_RT % self.sample == 0:
-            self.q.put(status._json)
-            self.index_RT = 1
-        else:
-            if self.index_info == 100:
-                logger.info("Bip! :: Queue size = {qsize}", qsize=self.q.qsize())
-                self.index_info = 0
-            self.q.put(status._json)
-            self.index_info += 1
+        self.q.put(status._json)
+        self.index_info += 1
+
+        if self.index_info == 100:
+            logger.info("Bip! :: Queue size = {qsize}", qsize=self.q.qsize())
+            self.index_info = 0
 
     @logger.catch()
     def on_error(self, status_code):
@@ -186,4 +181,11 @@ class ListenerDB(StreamListener):
     @logger.catch()
     def _storing(self):
         while True:
-            post_id = self.collection.insert_one(self.q.get())
+            status = self.q.get()
+            if status["text"][:2] == "RT" and self.index_RT % self.sample != 0:
+                self.index_RT += 1
+            elif status["text"][:2] == "RT" and self.index_RT % self.sample == 0:
+                post_id = self.collection.insert_one(status)
+                self.index_RT = 1
+            else:
+                post_id = self.collection.insert_one(status)
