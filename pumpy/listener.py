@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from typing import Any, List, Tuple
-from queue import Queue
+import Queue
 from threading import Thread
 
 import tweepy
@@ -133,19 +133,18 @@ class ListenerDB(StreamListener):
         index_RT {int} -- The message send by the bot to a user
     """
 
-    def __init__(self, api, config, sample=15, q=Queue()):
+    def __init__(self, api, config, sample=15):
         StreamListener.__init__(self, api)
         self.client: MongoClient = MongoClient(config["host"], config["port"])
         self.db: Database = self.client[config["db"]]
         self.collection: Collection = self.db[config["collection"]]
         self.sample: int = sample
-        self.q = q
         self.index_RT: int = 1
         self.index_info: int = 0
-        for i in range(4):
-            t = Thread(target=self._storing)
-            t.daemon = True
-            t.start()
+        self.queue = Queue.Queue()
+        t = Thread(target=self._storing)
+        t.daemon = True
+        t.start()
 
     @logger.catch()
     def on_status(self, status):
@@ -158,7 +157,7 @@ class ListenerDB(StreamListener):
             status -- The tweet received
         """
 
-        self.q.put(status._json)
+        self.queue.put(status._json)
         self.index_info += 1
 
         if self.index_info == 100:
@@ -181,7 +180,7 @@ class ListenerDB(StreamListener):
     @logger.catch()
     def _storing(self):
         while True:
-            status = self.q.get()
+            status = self.queue.get()
             if status["text"][:2] == "RT" and self.index_RT % self.sample != 0:
                 self.index_RT += 1
             elif status["text"][:2] == "RT" and self.index_RT % self.sample == 0:
@@ -189,3 +188,4 @@ class ListenerDB(StreamListener):
                 self.index_RT = 1
             else:
                 post_id = self.collection.insert_one(status)
+            self.queue.task_done()
