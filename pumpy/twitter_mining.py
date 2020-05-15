@@ -14,7 +14,7 @@ from urllib3.exceptions import ReadTimeoutError, ProtocolError
 from http.client import IncompleteRead
 
 from .authapi import AuthApi
-from .listener import ListenerBot, ListenerConsole, ListenerDB
+from .listener import ListenerDB, mongo_connect
 
 LOGGER_ROOT = "./logs/"
 logger.add(LOGGER_ROOT + "general.log", level="DEBUG", rotation="5 MB")
@@ -23,7 +23,7 @@ logger.add(LOGGER_ROOT + "general.log", level="DEBUG", rotation="5 MB")
 
 
 class MinerStream(object):
-    """Class used to Stream tweets and send them to a location (DB, file, console, bot...)
+    """Class used to receive Stream tweets and send them to a location (DB, console, bot)s
     
     Arguments:
         None
@@ -194,7 +194,7 @@ class MinerStream(object):
 class MinerFromPast(object):
     @logger.catch()
     def __init__(self):
-        logger.info("Creating miner")
+        logger.debug("Creating miner")
         # Auth management
         self.auth_keys: List[AuthApi] = list()
         self.current_auth_idx = 0
@@ -202,55 +202,32 @@ class MinerFromPast(object):
 
         # Attributes when using a file as a source.
         self.input_file_path: Path = None
-        self.output_file_path: str = str()
-        self.index_ids: int = 0
+        self.column_tweet_ids: int = 0
 
     @logger.catch()
-    def from_file(self, path_input_file: str, index_ids: int):
-        """
-        In 'getter' mode, define where are located the data that the user user wants
-        to retrieve.
+    def from_file(self, path_input_file: str):
+        """Set the location of the file of tweets to be retrieved
+
+        Arguments:
+            path_input_file {str} -- Path of the file 
+            column_tweet_ids {str} -- Integer representing the column number where the ids are located
         
-        Returns:
-            Miner -- the current object.
         """
-        logger.info("Entering from_file definition")
-        logger.info(f"Mining data from a file located at {path_input_file}")
-        logger.info(f"Text column is located at index {index_ids}")
         try:
             path: Path = Path(path_input_file)
         except FileNotFoundError:
-            logger.error("Wrong file or file path")
+            logger.error("Path provided is incorrect")
         self.input_file_path = path
-        self.index_ids = index_ids
-        return self
 
     @logger.catch()
-    def to(self, output):
-        """Define where the data will be sent. It can be stdout, in a file or in a database
+    def to(self, db: str, collection: str):
+        """Define where the data will be stored in the MongoDB
         
         Arguments:
-            output {str} -- Path toward the directory where the data will be stored.
-        
-        Returns:
-            Path -- Path object toward the file where the data will be stored.
+            db {str} -- Name of the db
+            collection {str} -- Name of the collection
         """
-        logger.info("Entering output definition")
-        if self.input_file_path is None:
-            logger.error("No input file provided when calling .to()")
-
-        if output == "database":
-            logger.info("Output mode set to database")
-            self._output = output
-            return self
-        elif output == "console":
-            logger.info("Output mode set to console")
-            self._output = output
-        elif output == "bot":
-            logger.info("Output mode set to bot")
-            self._output = output
-        else:
-            logger.error("Invalid output mode passed")
+        self.mongo_client = mongo_connect(db, collection)
 
     @logger.catch()
     def mine(self):
@@ -294,14 +271,6 @@ class MinerFromPast(object):
             logger.error("The 'mode' argument provided to the miner is invalid.")
             logger.error("It should be 'getter' or 'stream")
 
-    def db_config(
-        self, host="localhost", port=27017, db="twitter", collection="tweet"
-    ) -> None:
-        logger.info("Entering db configuration")
-        config = {"host": host, "port": port, "db": db, "collection": collection}
-        logger.info("Database configuration set to {config}", config=config)
-        self.config = config
-
     @staticmethod
     @logger.catch()
     def _write_tweets_through_ids(
@@ -328,21 +297,6 @@ class MinerFromPast(object):
         with open(path_tweet_ids_csv, "r", encoding="utf-8") as ids_csv:
             csv_reader = csv.reader(ids_csv)
             for line in csv_reader:
-                ids.append(line[self.index_ids])
+                ids.append(line[self.column_tweet_ids])
 
         self._write_tweets_through_ids(api, ids, self.output_file_path)
-
-    def _auth_next_account(self):
-        """
-        Internal function that shouldn't be called outside of mine, it tries to
-        grab the next account and if it reaches the end, it wraps back around to the
-        first set of keys.
-
-        :return: the new api, but it also sets self.api so unnecessary
-        """
-        self.current_auth_idx = self.current_auth_idx + 1
-        if len(self.auth_keys) <= self.current_auth_idx:
-            self.current_auth_idx = 0
-
-        auth_key: AuthApi = self.auth_keys[self.current_auth_idx]
-        self.current_auth_handler: Tuple[OAuthHandler, str] = auth_key._generate_api
