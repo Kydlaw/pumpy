@@ -1,13 +1,18 @@
 # coding: utf-8
 
 from typing import Any, List, Tuple
-import Queue
+import queue
 from threading import Thread
 
 import tweepy
 from loguru import logger
 from pymongo import MongoClient
 from tweepy import API, OAuthHandler, StreamListener
+
+
+def mongo_connect(db, collection, host="localhost", port=27017):
+    client = MongoClient(f"mongodb://{host}:{port}/{db}")
+    return client[collection]
 
 
 class ListenerBot(StreamListener):
@@ -141,7 +146,7 @@ class ListenerDB(StreamListener):
         self.sample: int = sample
         self.index_RT: int = 1
         self.index_info: int = 0
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         t = Thread(target=self._storing)
         t.daemon = True
         t.start()
