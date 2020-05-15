@@ -2,7 +2,7 @@
 
 import os
 
-from pumpy.twitter_mining import MinerStream
+from pumpy.twitter_mining import MinerStream, MinerFromPast
 from pumpy.authapi import AuthApi
 
 ############################ THINGS TO CHANGE ############################
@@ -14,7 +14,22 @@ from pumpy.authapi import AuthApi
 # - The keywords are defined in .search(...). The format is commat separated strings.
 
 
-def main():
+def main_hydrate():
+    miner = MinerFromPast()
+    miner.auth_keys.append(
+        AuthApi(
+            access_token=os.environ.get("ACCESS_TOKEN"),
+            access_token_secret=os.environ.get("ACCESS_SECRET"),
+            consumer_api_key=os.environ.get("CONSUMER_KEY"),
+            consumer_api_secret=os.environ.get("CONSUMER_SECRET"),
+        )
+    )
+
+    miner.from_file("/home/kyd/Téléchargements/tyendinaga-ids.txt")
+    miner.to("test", "example_recup")
+
+
+def main_stream():
     miner = MinerStream()
     miner.auth_keys.append(
         AuthApi(
@@ -51,4 +66,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main_hydrate()
