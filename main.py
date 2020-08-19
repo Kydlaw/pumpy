@@ -14,21 +14,6 @@ from pumpy.authapi import AuthApi
 # - The keywords are defined in .search(...). The format is commat separated strings.
 
 
-def main_hydrate():
-    miner = MinerFromPast()
-    miner.auth_keys.append(
-        AuthApi(
-            access_token=os.environ.get("ACCESS_TOKEN"),
-            access_token_secret=os.environ.get("ACCESS_SECRET"),
-            consumer_api_key=os.environ.get("CONSUMER_KEY"),
-            consumer_api_secret=os.environ.get("CONSUMER_SECRET"),
-        )
-    )
-
-    miner.from_file("/home/kyd/Téléchargements/tyendinaga-ids.txt")
-    miner.to("test", "example_recup")
-
-
 def main_stream():
     miner = MinerStream()
     miner.auth_keys.append(
@@ -66,4 +51,4 @@ def main_stream():
 
 
 if __name__ == "__main__":
-    main_hydrate()
+    main_stream()
