@@ -73,7 +73,7 @@ class ListenerDB(StreamListener):
         self.index_info += 1
 
         if self.index_info == 100:
-            logger.info("Bip! :: Queue size = {qsize}", qsize=self.q.qsize())
+            logger.info("Bip! :: Queue size = {qsize}", qsize=self.queue.qsize())
             self.index_info = 0
 
     @logger.catch()

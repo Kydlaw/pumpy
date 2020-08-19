@@ -127,8 +127,8 @@ class MinerStream(object):
     def _streamer_db(self, config, auth_handler):
         logger.debug("Generating the API")
         api: API = tweepy.API(auth_handler)
+        stream = Stream(auth_handler, ListenerDB(api, config))
         try:
-            stream = Stream(auth_handler, ListenerDB(api, config))
             self._filter(stream)
         except IncompleteRead:
             logger.error("Raised an IncompleteRead error :: Restart the service")
