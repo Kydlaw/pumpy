@@ -1,20 +1,15 @@
 # coding: utf-8
 
-import csv
-import json
-import re
-from typing import Any, List, Union, Tuple
+from http.client import IncompleteRead
+from typing import List, Tuple
 
 import tweepy
 from loguru import logger
-from pathlib import Path
-from tweepy import API, OAuthHandler, Status, Stream, StreamListener
-
-from urllib3.exceptions import ReadTimeoutError, ProtocolError
-from http.client import IncompleteRead
+from tweepy import API, OAuthHandler, Stream
+from urllib3.exceptions import ProtocolError, ReadTimeoutError
 
 from .authapi import AuthApi
-from .listener import ListenerDB, mongo_connect
+from .listener import ListenerConsole, ListenerDB
 
 LOGGER_ROOT = "./logs/"
 logger.add(LOGGER_ROOT + "general.log", level="DEBUG", rotation="5 MB")

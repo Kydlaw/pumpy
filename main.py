@@ -2,7 +2,7 @@
 
 import os
 
-from pumpy.twitter_mining import MinerStream, MinerFromPast
+from pumpy.twitter_mining import MinerStream
 from pumpy.authapi import AuthApi
 
 ############################ THINGS TO CHANGE ############################

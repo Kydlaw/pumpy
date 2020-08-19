@@ -1,13 +1,10 @@
 # coding: utf-8
 
-from typing import Any, List, Tuple
 import queue
 from threading import Thread
 
-import tweepy
 from loguru import logger
 from pymongo import MongoClient
-from tweepy import API, OAuthHandler, StreamListener
 
 
 def mongo_connect(db, collection, host="localhost", port=27017):
@@ -100,6 +97,8 @@ class ListenerBot(StreamListener):
         if len(self.auth_keys) <= self.auth_idx:
             self.auth_idx = 0
         self.api: OAuthHandler = self.auth_keys[self.auth_idx].generate_api[0]
+from pymongo.database import Database, Collection
+from tweepy import StreamListener
 
 
 class ListenerConsole(StreamListener):
