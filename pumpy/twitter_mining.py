@@ -79,22 +79,6 @@ class MinerStream(object):
         if self._output == "console":
             self._streamer_console(self.current_auth_handler)
 
-        elif self._output == "bot":
-            logger.info("Start running a bot to send message to specific users")
-            counter = 0
-            logger.info("Run loop n°{counter}", counter=counter)
-            api: API = tweepy.API(current_auth_handler[0])
-            stream = Stream(self.current_auth_handler[0], ListenerBot(api))
-            try:
-                self._filter(stream)
-            except tweepy.error.RateLimitError:
-                logger.info("Rate limit reached, changing account")
-                self._auth_next_account()
-                counter += 1
-            except ReadTimeoutError:
-                logger.error("Raised a ReadTimeoutError :: Restart the service")
-                self.mine()
-
         elif self._output == "database":
             try:
                 self._streamer_db(self.config, self.current_auth_handler)
@@ -138,10 +122,6 @@ class MinerStream(object):
         config = {"host": host, "port": port, "db": db, "collection": collection}
         logger.debug("Database configuration set to: {config}", config=config)
         self.config = config
-
-    @logger.catch()
-    def _streamer_bot(self, auth_handler):
-        pass
 
     @logger.catch()
     def _streamer_db(self, config, auth_handler):
