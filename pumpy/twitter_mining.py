@@ -133,6 +133,10 @@ class MinerStream(object):
         except IncompleteRead:
             logger.error("Raised an IncompleteRead error :: Restart the service")
             self.mine()
+        except KeyboardInterrupt:
+            logger.info("Stopped.")
+        finally:
+            stream.disconnect()
 
     @logger.catch()
     def _streamer_console(self, auth_handler):
