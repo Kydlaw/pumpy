@@ -143,9 +143,9 @@ class MinerStream(object):
 
     def _filter(self, stream: Stream):
         if self.keywords:
-            stream.filter(track=self.keywords, is_async=True)
+            stream.filter(track=self.keywords, async=True)
         elif self.locations:
-            stream.filter(locations=self.locations, is_async=True)
+            stream.filter(locations=self.locations, async=True)
         else:
             logger.debug("Failed to start stream.")
         logger.info("...Stream started...")

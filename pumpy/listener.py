@@ -54,9 +54,7 @@ class ListenerDB(StreamListener):
         self.index_RT: int = 1
         self.index_info: int = 0
         self.queue = queue.Queue()
-        t = Thread(target=self._storing)
-        t.daemon = True
-        t.start()
+        t = Thread(target=self._storing, daemon=True).start()
 
     @logger.catch()
     def on_status(self, status):
