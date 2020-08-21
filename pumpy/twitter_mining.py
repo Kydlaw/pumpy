@@ -95,6 +95,11 @@ class MinerStream(object):
     def search(self, *args) -> None:
         """
         Define the keywords or locations sent to the Twitter API to get the tweets.
+        
+        *Args:
+            List[str]: Strings that are going to be asked to the API.
+            _or_
+            List[List[int]]: List of 4 integers that will delimit the collection area.
         """
         logger.info("Search arguments definition")
         for elt in args:
