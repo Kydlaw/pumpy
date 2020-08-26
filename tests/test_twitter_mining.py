@@ -1,8 +1,10 @@
-from pumpy.twitter_mining import Miner
-import pytest
-from pytest_mock import mocker
-from path import Path
 import os
+
+import pytest
+
+from pathlib import Path
+from pumpy.twitter_mining import Miner
+from pytest_mock import mocker
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 #  coding: utf-8
 
-import pumpy.creds as creds
+import pumpy.authapi as creds
 from unittest.mock import patch
 from pytest_mock import mocker
 
