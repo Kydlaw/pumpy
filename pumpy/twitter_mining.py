@@ -73,6 +73,12 @@ class MinerStream(object):
             raise ValueError("No keywords or location provided")
 
         auth_key: AuthApi = self.auth_keys[self.current_auth_idx]
+        logger.debug("Generating the API handler")
+        logger.debug(
+            "Creds provided :: {access_token} :://:: {consumer_token}",
+            access_token=self.auth_keys[0].access_token,
+            consumer_token=self.auth_keys[0].consumer_api_key,
+        )
         self.current_auth_handler = auth_key.generate_api
         api = self.current_auth_handler
 
@@ -109,7 +115,8 @@ class MinerStream(object):
                 self.locations.append(elt)
             else:
                 logger.error("Invalid keywords or locations provided to .search()")
-        logger.debug(f"Keywords use to search :: {self.keywords}")
+        logger.debug(f"Keywords used to search :: {self.keywords}")
+        logger.debug(f"Locations used to search :: {self.locations}")
 
     def db_config(
         self, host="localhost", port=27017, db="twitter", collection="tweet"
@@ -130,7 +137,7 @@ class MinerStream(object):
 
     @logger.catch()
     def _streamer_db(self, config, auth_handler):
-        logger.debug("Generating the API")
+        logger.debug("Connecting to the API")
         api: API = tweepy.API(auth_handler)
         stream = Stream(auth_handler, ListenerDB(api, config))
         try:
@@ -151,10 +158,13 @@ class MinerStream(object):
         self._filter(stream)
 
     def _filter(self, stream: Stream):
+        logger.debug("Locations passed :: {locations}", locations=self.locations)
         if self.keywords:
-            stream.filter(track=self.keywords, async=True)
+            logger.debug("Passing keywords to the Streamer")
+            stream.filter(track=self.keywords, is_async=True)
         elif self.locations:
-            stream.filter(locations=self.locations, async=True)
+            logger.debug("Passing locations to the Streamer")
+            stream.filter(locations=[-122.75, 36.8, -121.75, 37.8], is_async=True)
         else:
             logger.debug("Failed to start stream.")
         logger.info("...Stream started...")
