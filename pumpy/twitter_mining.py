@@ -147,7 +147,6 @@ class MinerStream(object):
             self.mine()
         except KeyboardInterrupt:
             logger.info("Stopped.")
-        finally:
             stream.disconnect()
 
     @logger.catch()
