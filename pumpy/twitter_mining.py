@@ -39,7 +39,7 @@ class MinerStream(object):
 
         #  Attributes related to the Stream API
         self.keywords: List[str] = list()
-        self.locations: List[List[int]] = list()
+        self.locations: Tuple[float] = ()
 
     @logger.catch()
     def to(self, output):
@@ -105,14 +105,14 @@ class MinerStream(object):
         *Args:
             List[str]: Strings that are going to be asked to the API.
             _or_
-            List[List[int]]: List of 4 integers that will delimit the collection area.
+            Tuple[float]: Tuple of 4 floats that will delimit the collection area.
         """
         logger.info("Search arguments definition")
         for elt in args:
             if type(elt) == str:
                 self.keywords.append(elt)
-            elif type(elt) == list and len(elt) == 4:
-                self.locations.append(elt)
+            elif type(elt) == tuple and len(elt) == 4:
+                self.locations = elt
             else:
                 logger.error("Invalid keywords or locations provided to .search()")
         logger.debug(f"Keywords used to search :: {self.keywords}")
