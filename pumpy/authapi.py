@@ -1,6 +1,5 @@
 #  coding: utf-8
 
-from loguru import logger
 from tweepy import API, OAuthHandler
 
 
@@ -46,7 +45,6 @@ class AuthApi(API):
             and self.access_token
             and self.access_token_secret
         ):
-            logger.debug("Creation OAuthHandler")
             auth = OAuthHandler(self.consumer_api_key, self.consumer_api_secret)
             auth.set_access_token(self.access_token, self.access_token_secret)
         else:

@@ -3,7 +3,6 @@
 import queue
 from threading import Thread
 
-from loguru import logger
 from pymongo import MongoClient
 from pymongo.database import Database, Collection
 from tweepy import StreamListener
@@ -16,7 +15,6 @@ class ListenerConsole(StreamListener):
         self.sample: int = sample
         self.test: bool = test
 
-    @logger.catch()
     def on_status(self, status) -> None:
         if self.test:
             print(status.user.screen_name)
@@ -56,7 +54,6 @@ class ListenerDB(StreamListener):
         self.queue = queue.Queue()
         t = Thread(target=self._storing, daemon=True).start()
 
-    @logger.catch()
     def on_status(self, status):
         """Action to perform when a tweet containing a keyword(s) passed to the StreamListener
         is found.
@@ -71,23 +68,20 @@ class ListenerDB(StreamListener):
         self.index_info += 1
 
         if self.index_info == 100:
-            logger.info("Bip! :: Queue size = {qsize}", qsize=self.queue.qsize())
+            print("Bip! :: Queue size = {qsize}", qsize=self.queue.qsize())
             self.index_info = 0
 
-    @logger.catch()
     def on_error(self, status_code):
         """Action to perform when an error occur.
         
         Arguments:
             status_code -- The code of the error captured
         """
-        logger.error(status_code)
+        print(status_code)
 
-    @logger.catch()
     def on_timeout(self):
         self.client.close()
 
-    @logger.catch()
     def _storing(self):
         while True:
             status = self.queue.get()

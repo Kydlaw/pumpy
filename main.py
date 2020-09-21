@@ -18,10 +18,14 @@ def main_stream():
     miner = MinerStream()
     miner.auth_keys.append(
         AuthApi(
-            access_token=os.environ.get("ACCESS_TOKEN"),
-            access_token_secret=os.environ.get("ACCESS_SECRET"),
-            consumer_api_key=os.environ.get("CONSUMER_KEY"),
-            consumer_api_secret=os.environ.get("CONSUMER_SECRET"),
+            # access_token=os.environ.get("ACCESS_TOKEN"),
+            # access_token_secret=os.environ.get("ACCESS_SECRET"),
+            # consumer_api_key=os.environ.get("CONSUMER_KEY"),
+            # consumer_api_secret=os.environ.get("CONSUMER_SECRET"),
+            access_token="1192128601858158593-T2hfRkPduwGGM8iV6wd8503OYu0U49",
+            access_token_secret="IWveNVyykSMmhWKYvGNeotl6PpE0BGijsSlvzjalezotH",
+            consumer_api_key="AvH9eihMAIfBIzcEN0N1WhXpi",
+            consumer_api_secret="NhMhfyxM4e6E4wquRkRhna0aGmUV8IfTWhEitiAIJnrpsIQTkl",
         )
     )
 

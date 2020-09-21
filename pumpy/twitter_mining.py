@@ -4,15 +4,12 @@ from http.client import IncompleteRead
 from typing import List, Tuple
 
 import tweepy
-from loguru import logger
 from tweepy import API, OAuthHandler, Stream
 from urllib3.exceptions import ProtocolError, ReadTimeoutError
 
 from .authapi import AuthApi
 from .listener import ListenerConsole, ListenerDB
 
-LOGGER_ROOT = "./logs/"
-logger.add(LOGGER_ROOT + "general.log", level="DEBUG", rotation="5 MB")
 
 # TODO Use "extended" mode https://github.com/tweepy/tweepy/issues/974
 
@@ -30,7 +27,6 @@ class MinerStream(object):
         Run a Tweepy Stream object
     """
 
-    @logger.catch()
     def __init__(self):
         # Attributes related to Auth management
         self.auth_keys: List[AuthApi] = list()
@@ -41,7 +37,6 @@ class MinerStream(object):
         self.keywords: List[str] = list()
         self.locations: Tuple[float] = ()
 
-    @logger.catch()
     def to(self, output):
         """
         Define where the data will be sent. It can be stdout, file file, database or
@@ -51,19 +46,15 @@ class MinerStream(object):
             output {str} -- Where the data will be directed.
         """
         if output == "database":
-            logger.info("Output mode set to database")
             self._output = output
             return self
         elif output == "console":
-            logger.info("Output mode set to console")
             self._output = output
         elif output == "bot":
-            logger.info("Output mode set to bot")
             self._output = output
         else:
-            logger.error("Invalid output mode passed")
+            raise ValueError("Invalid output mode passed")
 
-    @logger.catch()
     def mine(self):
         """
         Method to collect tweets.
@@ -73,12 +64,6 @@ class MinerStream(object):
             raise ValueError("No keywords or location provided")
 
         auth_key: AuthApi = self.auth_keys[self.current_auth_idx]
-        logger.debug("Generating the API handler")
-        logger.debug(
-            "Creds provided :: {access_token} :://:: {consumer_token}",
-            access_token=self.auth_keys[0].access_token,
-            consumer_token=self.auth_keys[0].consumer_api_key,
-        )
         self.current_auth_handler = auth_key.generate_api
         api = self.current_auth_handler
 
@@ -89,13 +74,10 @@ class MinerStream(object):
             try:
                 self._streamer_db(self.config, self.current_auth_handler)
             except ReadTimeoutError:
-                logger.error("Raised a ReadTimeoutError :: Restart the service")
                 self.mine()
             except ProtocolError:
-                logger.error("Raised a ProtocolError :: Restart the service")
                 self.mine()
             except IncompleteRead:
-                logger.error("Raised an IncompleteRead error :: Restart the service")
                 self.mine()
 
     def search(self, *args) -> None:
@@ -107,16 +89,11 @@ class MinerStream(object):
             _or_
             Tuple[float]: Tuple of 4 floats that will delimit the collection area.
         """
-        logger.info("Search arguments definition")
         for elt in args:
             if type(elt) == str:
                 self.keywords.append(elt)
             elif type(elt) == tuple and len(elt) == 4:
                 self.locations = elt
-            else:
-                logger.error("Invalid keywords or locations provided to .search()")
-        logger.debug(f"Keywords used to search :: {self.keywords}")
-        logger.debug(f"Locations used to search :: {self.locations}")
 
     def db_config(
         self, host="localhost", port=27017, db="twitter", collection="tweet"
@@ -130,43 +107,29 @@ class MinerStream(object):
             db {str} -- The name of the database (default: {"twitter"})
             collection {str} -- The name of the collection used  (default: {"tweet"})
         """
-        logger.info("DB configuration")
         config = {"host": host, "port": port, "db": db, "collection": collection}
-        logger.debug("Database configuration set to: {config}", config=config)
         self.config = config
 
-    @logger.catch()
     def _streamer_db(self, config, auth_handler):
-        logger.debug("Connecting to the API")
         api: API = tweepy.API(auth_handler)
         stream = Stream(auth_handler, ListenerDB(api, config))
         try:
             self._filter(stream)
         except IncompleteRead:
-            logger.error("Raised an IncompleteRead error :: Restart the service")
             self.mine()
         except KeyboardInterrupt:
-            logger.info("Stopped.")
             stream.disconnect()
 
-    @logger.catch()
     def _streamer_console(self, auth_handler):
-        logger.debug("Generating the API")
         api: API = tweepy.API(auth_handler)
         stream = Stream(self.current_auth_handler[0], ListenerConsole(api))
         self._filter(stream)
 
     def _filter(self, stream: Stream):
-        logger.debug("Locations passed :: {locations}", locations=self.locations)
         if self.keywords:
-            logger.debug("Passing keywords to the Streamer")
             stream.filter(track=self.keywords, is_async=True)
         elif self.locations:
-            logger.debug("Passing locations to the Streamer")
             stream.filter(locations=self.locations, is_async=True)
-        else:
-            logger.debug("Failed to start stream.")
-        logger.info("...Stream started...")
 
     def _auth_next_account(self):
         """
