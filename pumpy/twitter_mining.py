@@ -163,7 +163,7 @@ class MinerStream(object):
             stream.filter(track=self.keywords, is_async=True)
         elif self.locations:
             logger.debug("Passing locations to the Streamer")
-            stream.filter(locations=[-122.75, 36.8, -121.75, 37.8], is_async=True)
+            stream.filter(locations=self.locations, is_async=True)
         else:
             logger.debug("Failed to start stream.")
         logger.info("...Stream started...")

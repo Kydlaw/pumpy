@@ -25,8 +25,9 @@ def main_stream():
         )
     )
 
-    miner.to("database").db_config(db="test", collection="covid")
-    miner.search("corona",)
+    miner.to("database").db_config(db="test", collection="geopsu")
+    # miner.search("covid")
+    miner.search((-77.9822, 40.7349, -77.7127, 40.8533))
 
     miner.mine()
 
